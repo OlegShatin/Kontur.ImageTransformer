@@ -32,7 +32,7 @@ namespace ImageTransformer.Tests
         }
 
         [Test]
-        public void UploadCorrectPic()
+        public void UploadCorrectPicGrayscale()
         {
             var req = (HttpWebRequest)HttpWebRequest.Create("http://localhost:8080/" + "process/grayscale/300,30,300,100");
             req.Method = "POST";
@@ -46,7 +46,47 @@ namespace ImageTransformer.Tests
             var resp = req.GetResponse();
             using (var stream = resp.GetResponseStream())
             {
-                stream.CopyTo(File.Create("B:\\home\\oleg\\code\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\TestFile.png"));
+                stream.CopyTo(File.Create("B:\\home\\oleg\\code\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\TestFileGrayscale.png"));
+            }
+
+            Assert.AreEqual(200, (int)((HttpWebResponse)resp).StatusCode);
+        }
+        [Test]
+        public void UploadCorrectPicThreshold()
+        {
+            var req = (HttpWebRequest)HttpWebRequest.Create("http://localhost:8080/" + "process/threshold(50)/0,0,512,512");
+            req.Method = "POST";
+            req.ContentType = "application/octet-stream";
+            req.KeepAlive = true;
+
+
+            Stream newStream = req.GetRequestStream();
+
+            File.OpenRead("B:\\home\\oleg\\code\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\Lenna.png").CopyTo(newStream);
+            var resp = req.GetResponse();
+            using (var stream = resp.GetResponseStream())
+            {
+                stream.CopyTo(File.Create("B:\\home\\oleg\\code\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\TestFileThreshold.png"));
+            }
+
+            Assert.AreEqual(200, (int)((HttpWebResponse)resp).StatusCode);
+        }
+        [Test]
+        public void UploadCorrectPicSepia()
+        {
+            var req = (HttpWebRequest)HttpWebRequest.Create("http://localhost:8080/" + "process/sepia/300,30,300,100");
+            req.Method = "POST";
+            req.ContentType = "application/octet-stream";
+            req.KeepAlive = true;
+
+
+            Stream newStream = req.GetRequestStream();
+
+            File.OpenRead("B:\\home\\oleg\\code\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\Lenna.png").CopyTo(newStream);
+            var resp = req.GetResponse();
+            using (var stream = resp.GetResponseStream())
+            {
+                stream.CopyTo(File.Create("B:\\home\\oleg\\code\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\TestFileSepia.png"));
             }
 
             Assert.AreEqual(200, (int)((HttpWebResponse)resp).StatusCode);

@@ -10,3 +10,4 @@ obj/
 packages/
 *.backup
 .vs/
+*.png

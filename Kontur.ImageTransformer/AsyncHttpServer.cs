@@ -200,8 +200,9 @@ namespace Kontur.ImageTransformer
         {
             try
             {
-                return int.TryParse(segment.Substring((segment.IndexOf("(") + 1), (segment.IndexOf(")") + 1)),
-                    out level);
+                int firstDigitIndex = (segment.IndexOf("(") + 1);
+                int lastBraceIndex = (segment.IndexOf(")"));
+                return int.TryParse(segment.Substring(firstDigitIndex, lastBraceIndex - firstDigitIndex), out level);
             }
             catch (Exception e)
             {
@@ -226,6 +227,10 @@ namespace Kontur.ImageTransformer
 
         private async Task HandleThreshold(int level, int x, int y, int height, int width)
         {
+            if (level < 0 || level > 100)
+                await SendBadRequestAsync();
+            else
+                await HandlePicSegmentWithParam(x, y, height, width, imageHandler.ApplyThreshold, level);
         }
 
         private async Task HandleGrayscale(int x, int y, int height, int width)
@@ -239,6 +244,8 @@ namespace Kontur.ImageTransformer
         }
 
         private delegate void SegmentHandler(Bitmap segment);
+        private delegate void SegmentHandlerWithParam(Bitmap segment, int param);
+
         private async Task HandlePicSegment(int x, int y, int height, int width, SegmentHandler handler)
         {
             using (Request.InputStream)
@@ -252,125 +259,32 @@ namespace Kontur.ImageTransformer
                     handler.Invoke(segment);
                     using (Response.OutputStream)
                         segment.Save(Response.OutputStream, ImageFormat.Png);
+                    Response.Close();
                 }
                 
             }
-            Response.Close();
+            
         }
-    }
-
-    public class ImageHandler
-    {
-        public bool TryCropImage(Bitmap source, out Bitmap result, int x, int y, int height, int width)
+        private async Task HandlePicSegmentWithParam(int x, int y, int height, int width, SegmentHandlerWithParam handlerWithParam, int handlerParam)
         {
-            result = null;
-            //normalize X and Y
-            if (width < 0)
+            using (Request.InputStream)
             {
-                x += width;
-                width = -width;
-            }
-
-            if (height < 0)
-            {
-                y += height;
-                height = -height;
-            }
-
-            if (x > source.Width || y > source.Height || (x + width) < 0 || (y + height) < 0)
-                return false;
-
-            int trueX, trueY, trueWidth, trueHeigth;
-            if (x < 0)
-            {
-                trueX = 0;
-                trueWidth = width + x < source.Width ? width + x : source.Width;
-            }
-            else
-            {
-                trueX = x;
-                trueWidth = x + width > source.Width - x ? source.Width - x : width;
-            }
-
-            if (y < 0)
-            {
-                trueY = 0;
-                trueHeigth = height + y < source.Height ? height + y : source.Height;
-            }
-            else
-            {
-                trueY = y;
-                trueHeigth = y + height > source.Height - y ? source.Height - y : height;
-            }
-
-            // An empty bitmap which will hold the cropped image
-            result = new Bitmap(trueWidth, trueHeigth);
-
-            Graphics g = Graphics.FromImage(result);
-
-            // Draw the given area (section) of the source image
-            // at location 0,0 on the empty bitmap (bmp)
-            g.DrawImage(source, 0, 0, new Rectangle(trueX, trueY, trueWidth, trueHeigth), GraphicsUnit.Pixel);
-
-            return true;
-        }
-
-        public void ApplySepia(Bitmap processedBitmap)
-        {
-            ProcessUsingLockbitsAndUnsafeAndParallel(processedBitmap, SepiaPixelAction);
-        }
-
-        private void SepiaPixelAction(ref int r, ref int g, ref int b)
-        {
-            int newR = (int) (r * 0.393f + g * 0.769f + b * 0.189f);
-            int newG = (int) (r * 0.349f + g * 0.686f + b * 0.168f);
-            int newB = (int) (r * 0.272f + g * 0.543f + b * 0.131f);
-            r = newR > 255 ? 255 : newR;
-            g = newG > 255 ? 255 : newG;
-            b = newB > 255 ? 255 : newB;
-        }
-
-        private delegate void PixelActionDel(ref int r, ref int g, ref int b);
-
-        private unsafe void ProcessUsingLockbitsAndUnsafeAndParallel(Bitmap processedBitmap,
-            PixelActionDel actionForRgbPixels)
-        {
-            BitmapData bitmapData = processedBitmap.LockBits(
-                new Rectangle(0, 0, processedBitmap.Width, processedBitmap.Height), ImageLockMode.ReadWrite,
-                processedBitmap.PixelFormat);
-
-            int bytesPerPixel = Bitmap.GetPixelFormatSize(processedBitmap.PixelFormat) / 8;
-            int heightInPixels = bitmapData.Height;
-            int widthInBytes = bitmapData.Width * bytesPerPixel;
-            byte* ptrFirstPixel = (byte*) bitmapData.Scan0;
-
-            Parallel.For(0, heightInPixels, y =>
-            {
-                byte* currentLine = ptrFirstPixel + (y * bitmapData.Stride);
-                for (int x = 0; x < widthInBytes; x = x + bytesPerPixel)
+                Bitmap pic = new Bitmap(Request.InputStream);
+                Bitmap segment;
+                if (!imageHandler.TryCropImage(pic, out segment, x, y, height, width))
+                    await SendNoContentAsync();
+                else
                 {
-                    int blue = currentLine[x];
-                    int green = currentLine[x + 1];
-                    int red = currentLine[x + 2];
-                    actionForRgbPixels.Invoke(ref red, ref green, ref blue);
-                    currentLine[x] = (byte) blue;
-                    currentLine[x + 1] = (byte) green;
-                    currentLine[x + 2] = (byte) red;
+                    handlerWithParam.Invoke(segment, handlerParam);
+                    using (Response.OutputStream)
+                        segment.Save(Response.OutputStream, ImageFormat.Png);
+                    Response.Close();
                 }
-            });
-            processedBitmap.UnlockBits(bitmapData);
-        }
 
-        public void ApplyGrayscale(Bitmap processedBitmap)
-        {
-            ProcessUsingLockbitsAndUnsafeAndParallel(processedBitmap, GrayscalePixelAction);
-        }
-        private void GrayscalePixelAction(ref int r, ref int g, ref int b)
-        {
-            int intensity = (r + g + b) / 3;
-            r = intensity;
-            g = intensity;
-            b = intensity;
+            }
+            
         }
     }
+
+    
 }
