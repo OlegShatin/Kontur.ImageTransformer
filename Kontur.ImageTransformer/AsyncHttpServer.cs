@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,6 +65,8 @@ namespace Kontur.ImageTransformer
 
         private void Listen()
         {
+            int threadsCount;
+            ThreadPool.SetMinThreads(60, 1000);
             while (true)
             {
                 currentReqsNumber++;
@@ -72,21 +75,27 @@ namespace Kontur.ImageTransformer
                     if (listener.IsListening)
                     {
                         var listenerContext = listener.GetContext();
+                        //ThreadPool.GetMaxThreads(out threadsCount, out int i);
+                        //ThreadPool.GetAvailableThreads(out int avalThreads,out  i);
+                        //ThreadPool.GetMinThreads(out int minThreads, out i);
+                        //Console.WriteLine(threadsCount + " " + avalThreads + " " + minThreads);
                         if (currentReqsNumber < maxReqs)
                         {
-                            
                             var controller = new ImageController(listenerContext, currentReqsNumber);
                             Task.Run(() =>
                             {
                                 controller.HandleRequest();
                                 var ts = DateTime.Now - controller.Start;
-                                if (!IsMax && ts > TimeSpan.FromMilliseconds(950))
+                                if (ts > TimeSpan.FromMilliseconds(500))
+                                    Console.WriteLine("Timespan: " + ts);
+                                if (!IsMax && ts > TimeSpan.FromMilliseconds(500))
                                 {
                                     //Console.WriteLine("max reqs upd: " + currentReqsNumber);
-                                    //Console.WriteLine("Timespan: " + ts);
+                                   
 
                                     IsMax = true;
                                     maxReqs = controller.ReqsNumber;
+                                    Console.WriteLine("Timespan: " + ts + " , reqs: " + maxReqs);
                                 }
 
                                 currentReqsNumber--;
@@ -95,12 +104,14 @@ namespace Kontur.ImageTransformer
                         }
                         else
                         {
-                            //Task.Run(() => {
-                            listenerContext.Response.StatusCode = 503;
-                            listenerContext.Response.Close();
-                            //Console.WriteLine("Refused, maxReqs, currentReqs: " + maxReqs + ", " + currentReqsNumber);
-                            currentReqsNumber--;
-                            //});
+                            Task.Run(() =>
+                            {
+                                listenerContext.Response.StatusCode = 429;
+                                listenerContext.Response.Close();
+
+                                //Console.WriteLine("Refused, maxReqs, currentReqs: " + maxReqs + ", " + currentReqsNumber);
+                                currentReqsNumber--;
+                            });
                         }
                     }
                     else Thread.Sleep(0);
