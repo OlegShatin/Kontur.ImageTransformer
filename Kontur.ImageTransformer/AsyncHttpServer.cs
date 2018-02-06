@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Threading;
@@ -23,12 +24,17 @@ namespace Kontur.ImageTransformer
                     listener.Prefixes.Add(prefix);
                     listener.Start();
 
+                    queue = new BlockingCollection<ImageController>(new ConcurrentQueue<ImageController>());
+                    Task.Run((Action) HandleQueueElems);
+
                     listenerThread = new Thread(Listen)
                     {
                         IsBackground = true,
                         Priority = ThreadPriority.Highest
                     };
                     listenerThread.Start();
+
+                    
 
                     isRunning = true;
                 }
@@ -47,6 +53,9 @@ namespace Kontur.ImageTransformer
                 listenerThread.Abort();
                 listenerThread.Join();
 
+                queueHandleThread.Abort();
+                queueHandleThread.Join();
+
                 isRunning = false;
             }
         }
@@ -63,76 +72,88 @@ namespace Kontur.ImageTransformer
             listener.Close();
         }
 
+        private int i = 0;
         private void Listen()
         {
-            int threadsCount;
-            ThreadPool.SetMinThreads(60, 1000);
+            
+            //ThreadPool.SetMinThreads(60, 1000);
             while (true)
             {
-                currentReqsNumber++;
+                
                 try
                 {
                     if (listener.IsListening)
                     {
                         var listenerContext = listener.GetContext();
-                        //ThreadPool.GetMaxThreads(out threadsCount, out int i);
-                        //ThreadPool.GetAvailableThreads(out int avalThreads,out  i);
-                        //ThreadPool.GetMinThreads(out int minThreads, out i);
-                        //Console.WriteLine(threadsCount + " " + avalThreads + " " + minThreads);
-                        if (currentReqsNumber < maxReqs)
+                        var controller = new ImageController(listenerContext);
+                        Task.Run(() =>
                         {
-                            var controller = new ImageController(listenerContext, currentReqsNumber);
-                            Task.Run(() =>
+                            while (!queue.TryAdd(controller))
                             {
-                                controller.HandleRequest();
-                                var ts = DateTime.Now - controller.Start;
-                                if (ts > TimeSpan.FromMilliseconds(500))
-                                    Console.WriteLine("Timespan: " + ts);
-                                if (!IsMax && ts > TimeSpan.FromMilliseconds(500))
-                                {
-                                    //Console.WriteLine("max reqs upd: " + currentReqsNumber);
-                                   
+                                Console.WriteLine("not added");
+                            }
+                           // Console.WriteLine(i++);
+                        });
 
-                                    IsMax = true;
-                                    maxReqs = controller.ReqsNumber;
-                                    Console.WriteLine("Timespan: " + ts + " , reqs: " + maxReqs);
-                                }
 
-                                currentReqsNumber--;
-                                //Console.WriteLine("Successed: " + (DateTime.Now - controller.Start));
-                            });
-                        }
-                        else
-                        {
-                            Task.Run(() =>
-                            {
-                                listenerContext.Response.StatusCode = 429;
-                                listenerContext.Response.Close();
-
-                                //Console.WriteLine("Refused, maxReqs, currentReqs: " + maxReqs + ", " + currentReqsNumber);
-                                currentReqsNumber--;
-                            });
-                        }
                     }
                     else Thread.Sleep(0);
                 }
                 catch (ThreadAbortException e)
                 {
                     Console.WriteLine(e);
-                    currentReqsNumber--;
                     return;
                 }
                 catch (Exception error)
                 {
                     Console.WriteLine(error);
-                    currentReqsNumber--;
                 }
             }
         }
 
-        private bool IsMax = false;
-        private int maxReqs = int.MaxValue;
-        private int currentReqsNumber = 0;
+        private TimeSpan halfSecond = TimeSpan.FromMilliseconds(300);
+        private void HandleQueueElems()
+        {
+            foreach (var controller in queue.GetConsumingEnumerable())
+            {
+                if (DateTime.Now - controller.Start < halfSecond)
+                    Task.Run(() =>
+                    {
+                        controller.HandleRequest();
+                    });
+                else
+                    Task.Run(() =>
+                    {
+                        using (controller.Response)
+                        {
+                            controller.RefuseRequest();
+                        }
+
+                    });
+            }
+        }
+
+        private BlockingCollection<ImageController> queue;
+        private void HandleRequest(Controller controller)
+        {
+            
+            Task.Run(() =>
+            {
+                controller.HandleRequest();
+            });
+        }
+
+        private void RefuseRequest(Controller controller)
+        {
+            Task.Run(() =>
+            {
+                using (controller.Response)
+                {
+                    controller.RefuseRequest();
+                }
+                
+            });
+        }
 
         private void HandleContext(HttpListenerContext listenerContext)
         {
@@ -144,6 +165,7 @@ namespace Kontur.ImageTransformer
         private readonly HttpListener listener;
 
         private Thread listenerThread;
+        private Thread queueHandleThread;
         private bool disposed;
         private volatile bool isRunning;
     }

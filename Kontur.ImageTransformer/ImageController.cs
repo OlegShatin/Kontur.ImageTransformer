@@ -11,13 +11,12 @@ namespace Kontur.ImageTransformer
 {
     public class ImageController : Controller
     {
-        public int ReqsNumber { get; }
+        
         private ImageHandler imageHandler = new ImageHandler();
         public DateTime Start { get; private set; }
 
-        public ImageController(HttpListenerContext listenerContext, int currentReqsNumber) : base(listenerContext)
+        public ImageController(HttpListenerContext listenerContext) : base(listenerContext)
         {
-            ReqsNumber = currentReqsNumber;
             Start = DateTime.Now;
         }
 
