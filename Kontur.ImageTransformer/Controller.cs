@@ -13,12 +13,18 @@ namespace Kontur.ImageTransformer
             Request = listenerContext.Request;
             Response = listenerContext.Response;
         }
-        public void RefuseRequest()
+        protected void RefuseRequest()
         {
             Response.StatusCode = 429;
             if (!closed)
                 Response.Close();
             closed = true;
+        }
+
+        public void RefuseRequestSafely()
+        {
+            using (Response)
+                RefuseRequest();
         }
         public abstract void HandleRequest();
 

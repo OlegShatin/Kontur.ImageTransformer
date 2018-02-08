@@ -15,6 +15,14 @@ namespace ImageTransformer.Tests
     {
         private AsyncHttpServer server;
 
+        private const string ValidPicPath =
+            "B:\\home\\oleg\\code\\csharp\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\LennaShort.png";
+
+        private const string LargePicPath =
+            "B:\\home\\oleg\\code\\csharp\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\Lenna.png";
+
+        private const string StoragePath =
+            "B:\\home\\oleg\\code\\csharp\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\";
         [OneTimeSetUp]
         public void SetUp()
         {
@@ -22,19 +30,12 @@ namespace ImageTransformer.Tests
             server.Start("http://localhost:8080/");
         }
 
-        [Test]
-        public void TestMethod()
-        {
-            var req = (HttpWebRequest)HttpWebRequest.Create("http://localhost:8080/" + "process/filter/coords");
-            req.Method = "GET";
-            req.GetResponse();
-            Assert.Pass("Your first passing test");
-        }
+        
 
         [Test]
         public void UploadCorrectPicGrayscale()
         {
-            var req = (HttpWebRequest)HttpWebRequest.Create("http://localhost:8080/" + "process/grayscale/300,30,300,100");
+            var req = (HttpWebRequest)HttpWebRequest.Create("http://localhost:8080/" + "process/grayscale/0,0,10,15");
             req.Method = "POST";
             req.ContentType = "application/octet-stream";
             req.KeepAlive = true;
@@ -42,11 +43,11 @@ namespace ImageTransformer.Tests
 
             Stream newStream = req.GetRequestStream();
 
-            File.OpenRead("B:\\home\\oleg\\code\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\Lenna.png").CopyTo(newStream);
+            File.OpenRead(ValidPicPath).CopyTo(newStream);
             var resp = req.GetResponse();
             using (var stream = resp.GetResponseStream())
             {
-                stream.CopyTo(File.Create("B:\\home\\oleg\\code\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\TestFileGrayscale.png"));
+                stream.CopyTo(File.Create(StoragePath + "TestFileGrayscale.png"));
             }
 
             Assert.AreEqual(200, (int)((HttpWebResponse)resp).StatusCode);
@@ -62,17 +63,38 @@ namespace ImageTransformer.Tests
 
             Stream newStream = req.GetRequestStream();
 
-            File.OpenRead("B:\\home\\oleg\\code\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\Lenna.png").CopyTo(newStream);
+            File.OpenRead(ValidPicPath).CopyTo(newStream);
             var resp = req.GetResponse();
             using (var stream = resp.GetResponseStream())
             {
-                stream.CopyTo(File.Create("B:\\home\\oleg\\code\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\TestFileThreshold.png"));
+                stream.CopyTo(File.Create(StoragePath + "TestFileThreshold.png"));
             }
 
             Assert.AreEqual(200, (int)((HttpWebResponse)resp).StatusCode);
         }
         [Test]
         public void UploadCorrectPicSepia()
+        {
+            var req = (HttpWebRequest)HttpWebRequest.Create("http://localhost:8080/" + "process/sepia/0,0,10,15");
+            req.Method = "POST";
+            req.ContentType = "application/octet-stream";
+            req.KeepAlive = true;
+
+
+            Stream newStream = req.GetRequestStream();
+
+            File.OpenRead(ValidPicPath).CopyTo(newStream);
+            var resp = req.GetResponse();
+            using (var stream = resp.GetResponseStream())
+            {
+                stream.CopyTo(File.Create(StoragePath + "TestFileSepia.png"));
+            }
+
+            Assert.AreEqual(200, (int)((HttpWebResponse)resp).StatusCode);
+        }
+
+        [Test]
+        public void RefuseOver100KBPic()
         {
             var req = (HttpWebRequest)HttpWebRequest.Create("http://localhost:8080/" + "process/sepia/300,30,300,100");
             req.Method = "POST";
@@ -82,14 +104,53 @@ namespace ImageTransformer.Tests
 
             Stream newStream = req.GetRequestStream();
 
-            File.OpenRead("B:\\home\\oleg\\code\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\Lenna.png").CopyTo(newStream);
-            var resp = req.GetResponse();
-            using (var stream = resp.GetResponseStream())
+            File.OpenRead(LargePicPath).CopyTo(newStream);
+            try
             {
-                stream.CopyTo(File.Create("B:\\home\\oleg\\code\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\TestFileSepia.png"));
+                using (WebResponse response = req.GetResponse())
+                {
+                    Assert.Fail();
+                }
             }
+            catch (WebException e)
+            {
+                using (WebResponse response = e.Response)
+                {
+                    HttpWebResponse httpResponse = (HttpWebResponse)response;
+                    Assert.AreEqual(400, (int)httpResponse.StatusCode);
+                }
+            }
+            
+        }
 
-            Assert.AreEqual(200, (int)((HttpWebResponse)resp).StatusCode);
+        [Test]
+        public void RefuseNotPostRequest()
+        {
+            var req = (HttpWebRequest)HttpWebRequest.Create("http://localhost:8080/" + "process/sepia/300,30,300,100");
+            req.Method = "PUT";
+            req.ContentType = "application/octet-stream";
+            req.KeepAlive = true;
+
+
+            
+            Stream newStream = req.GetRequestStream();
+
+            File.OpenRead(ValidPicPath).CopyTo(newStream);
+            try
+            {
+                using (WebResponse response = req.GetResponse())
+                {
+                    Assert.Fail();
+                }
+            }
+            catch (WebException e)
+            {
+                using (WebResponse response = e.Response)
+                {
+                    HttpWebResponse httpResponse = (HttpWebResponse)response;
+                    Assert.AreEqual(400, (int)httpResponse.StatusCode);
+                }
+            }
         }
 
         [OneTimeTearDown]

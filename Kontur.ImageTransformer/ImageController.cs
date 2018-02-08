@@ -11,9 +11,9 @@ namespace Kontur.ImageTransformer
 {
     public class ImageController : Controller
     {
-        
         private ImageHandler imageHandler = new ImageHandler();
         public DateTime Start { get; private set; }
+        private const int BytesLimit = 100 * 1024;
 
         public ImageController(HttpListenerContext listenerContext) : base(listenerContext)
         {
@@ -24,7 +24,8 @@ namespace Kontur.ImageTransformer
         {
             using (Response)
             {
-                if (Request.Url.Segments.Length == 4 && Request.Url.Segments[1] == "process/")
+                if (Request.Url.Segments.Length == 4 && Request.Url.Segments[1] == "process/" &&
+                    Request.ContentLength64 < BytesLimit && Request.HttpMethod == "POST")
                 {
                     int x, y, height, width;
                     if (!TryParseCoords(Request.Url.Segments[3], out x, out y, out height, out width))
@@ -98,24 +99,24 @@ namespace Kontur.ImageTransformer
             if (level < 0 || level > 100)
                 SendBadRequest();
             else
-                HandlePicSegmentWithParam(x, y, height, width, imageHandler.ApplyThreshold, level);
+                HandlePicSegment(x, y, height, width, new ThresholdBitmapAction(level, imageHandler));
         }
 
         private void HandleGrayscale(int x, int y, int height, int width)
         {
-            HandlePicSegment(x, y, height, width, imageHandler.ApplyGrayscale);
+            HandlePicSegment(x, y, height, width, new GrayscaleBitmapAction(imageHandler));
         }
 
         private void HandleSepia(int x, int y, int height, int width)
         {
-            HandlePicSegment(x, y, height, width, imageHandler.ApplySepia);
+            HandlePicSegment(x, y, height, width, new SepiaBitmapAction(imageHandler));
         }
 
         private delegate void SegmentHandler(Bitmap segment);
 
-        private delegate void SegmentHandlerWithParam(Bitmap segment, int param);
+        //private delegate void SegmentHandlerWithParam(Bitmap segment, int param);
 
-        private void HandlePicSegment(int x, int y, int height, int width, SegmentHandler handler)
+        private void HandlePicSegment(int x, int y, int height, int width, BitmapAction action)
         {
             using (Request.InputStream)
             {
@@ -130,7 +131,7 @@ namespace Kontur.ImageTransformer
                     SendNoContent();
                 else
                 {
-                    handler.Invoke(segment);
+                    action.Invoke(segment);
                     using (Response.OutputStream)
                         segment.Save(Response.OutputStream, ImageFormat.Png);
                     Response.Close();
@@ -138,28 +139,60 @@ namespace Kontur.ImageTransformer
             }
         }
 
-        private void HandlePicSegmentWithParam(int x, int y, int height, int width,
-            SegmentHandlerWithParam handlerWithParam, int handlerParam)
+
+        #region BitmapActions
+
+        private abstract class BitmapAction
         {
-            using (Request.InputStream)
+            protected readonly ImageHandler performer;
+
+            protected BitmapAction(ImageHandler performer)
             {
-                Bitmap pic;
+                this.performer = performer;
+            }
 
+            public abstract void Invoke(Bitmap bitmap);
+        }
 
-                pic = new Bitmap(Request.InputStream);
+        private class ThresholdBitmapAction : BitmapAction
+        {
+            private readonly int level;
 
+            public ThresholdBitmapAction(int level, ImageHandler performer) : base(performer)
+            {
+                this.level = level;
+            }
 
-                Bitmap segment;
-                if (!imageHandler.TryCropImage(pic, out segment, x, y, height, width))
-                    SendNoContent();
-                else
-                {
-                    handlerWithParam.Invoke(segment, handlerParam);
-                    using (Response.OutputStream)
-                        segment.Save(Response.OutputStream, ImageFormat.Png);
-                    Response.Close();
-                }
+            public override void Invoke(Bitmap bitmap)
+            {
+                performer.ApplyThreshold(bitmap, level);
             }
         }
+
+        private class SepiaBitmapAction : BitmapAction
+        {
+            public SepiaBitmapAction(ImageHandler performer) : base(performer)
+            {
+            }
+
+            public override void Invoke(Bitmap bitmap)
+            {
+                performer.ApplySepia(bitmap);
+            }
+        }
+
+        private class GrayscaleBitmapAction : BitmapAction
+        {
+            public GrayscaleBitmapAction(ImageHandler performer) : base(performer)
+            {
+            }
+
+            public override void Invoke(Bitmap bitmap)
+            {
+                performer.ApplyGrayscale(bitmap);
+            }
+        }
+
+        #endregion
     }
 }

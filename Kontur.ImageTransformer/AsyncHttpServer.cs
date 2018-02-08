@@ -53,8 +53,8 @@ namespace Kontur.ImageTransformer
                 listenerThread.Abort();
                 listenerThread.Join();
 
-                queueHandleThread.Abort();
-                queueHandleThread.Join();
+                //queueHandleThread.Abort();
+                //queueHandleThread.Join();
 
                 isRunning = false;
             }
@@ -124,10 +124,7 @@ namespace Kontur.ImageTransformer
                 else
                     Task.Run(() =>
                     {
-                        using (controller.Response)
-                        {
-                            controller.RefuseRequest();
-                        }
+                        controller.RefuseRequestSafely();
 
                     });
             }
@@ -149,7 +146,7 @@ namespace Kontur.ImageTransformer
             {
                 using (controller.Response)
                 {
-                    controller.RefuseRequest();
+                    controller.RefuseRequestSafely();
                 }
                 
             });
