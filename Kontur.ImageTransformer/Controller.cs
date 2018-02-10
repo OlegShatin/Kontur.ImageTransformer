@@ -6,7 +6,7 @@ namespace Kontur.ImageTransformer
     {
         public HttpListenerRequest Request { get; private set; }
         public HttpListenerResponse Response { get; private set; }
-        protected bool closed = false;
+        protected bool Closed = false;
 
         protected Controller(HttpListenerContext listenerContext)
         {
@@ -16,9 +16,9 @@ namespace Kontur.ImageTransformer
         protected void RefuseRequest()
         {
             Response.StatusCode = 429;
-            if (!closed)
+            if (!Closed)
                 Response.Close();
-            closed = true;
+            Closed = true;
         }
 
         public void RefuseRequestSafely()
@@ -31,25 +31,25 @@ namespace Kontur.ImageTransformer
         protected void SendBadRequest()
         {
             Response.StatusCode = (int) HttpStatusCode.BadRequest;
-            if (!closed)
+            if (!Closed)
                 Response.Close();
-            closed = true;
+            Closed = true;
         }
 
         protected void SendNotFound()
         {
             Response.StatusCode = (int) HttpStatusCode.NotFound;
-            if (!closed)
+            if (!Closed)
                 Response.Close();
-            closed = true;
+            Closed = true;
         }
 
         protected void SendNoContent()
         {
             Response.StatusCode = (int) HttpStatusCode.NoContent;
-            if (!closed)
+            if (!Closed)
                 Response.Close();
-            closed = true;
+            Closed = true;
         }
     }
 }

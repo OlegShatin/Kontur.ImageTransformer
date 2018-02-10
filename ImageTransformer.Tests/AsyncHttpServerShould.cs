@@ -11,7 +11,7 @@ using Kontur.ImageTransformer;
 namespace ImageTransformer.Tests
 {
     [TestFixture]
-    public class TestClass
+    public class AsyncHttpServerShould
     {
         private AsyncHttpServer server;
 

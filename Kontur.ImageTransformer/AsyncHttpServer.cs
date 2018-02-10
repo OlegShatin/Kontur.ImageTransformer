@@ -4,11 +4,22 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using NLog;
+using NLog.Targets;
 
 namespace Kontur.ImageTransformer
 {
     public class AsyncHttpServer : IDisposable
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private readonly HttpListener listener;
+        private Thread listenerThread;
+        private Thread queueHandleThread;
+        private bool disposed;
+        private volatile bool isRunning;
+        private readonly TimeSpan requestWaitingLimit = TimeSpan.FromMilliseconds(300);
+        private BlockingCollection<ImageController> queue;
+
         public AsyncHttpServer()
         {
             listener = new HttpListener();
@@ -25,18 +36,21 @@ namespace Kontur.ImageTransformer
                     listener.Start();
 
                     queue = new BlockingCollection<ImageController>(new ConcurrentQueue<ImageController>());
-                    Task.Run((Action) HandleQueueElems);
+                    queueHandleThread = new Thread(HandleQueueElems)
+                    {
+                        IsBackground = true,
+                        Priority = ThreadPriority.AboveNormal
+                    };
+                    queueHandleThread.Start();
 
                     listenerThread = new Thread(Listen)
                     {
                         IsBackground = true,
-                        Priority = ThreadPriority.Highest
+                        Priority = ThreadPriority.AboveNormal
                     };
                     listenerThread.Start();
-
-                    
-
                     isRunning = true;
+                    logger.Info("Server started");
                 }
             }
         }
@@ -53,10 +67,12 @@ namespace Kontur.ImageTransformer
                 listenerThread.Abort();
                 listenerThread.Join();
 
-                //queueHandleThread.Abort();
-                //queueHandleThread.Join();
+                queueHandleThread.Abort();
+                queueHandleThread.Join();
 
                 isRunning = false;
+
+                logger.Info("Server stopped");
             }
         }
 
@@ -72,11 +88,9 @@ namespace Kontur.ImageTransformer
             listener.Close();
         }
 
-        private int i = 0;
+        
         private void Listen()
         {
-            
-            //ThreadPool.SetMinThreads(60, 1000);
             while (true)
             {
                 
@@ -88,11 +102,9 @@ namespace Kontur.ImageTransformer
                         var controller = new ImageController(listenerContext);
                         Task.Run(() =>
                         {
-                            while (!queue.TryAdd(controller))
-                            {
-                                Console.WriteLine("not added");
-                            }
-                           // Console.WriteLine(i++);
+                            if (!queue.TryAdd(controller))
+                                logger.Error($"Context doesn't be added to queue, controller: " + DefaultJsonSerializer.Instance.SerializeObject(controller));
+                            
                         });
 
 
@@ -101,22 +113,22 @@ namespace Kontur.ImageTransformer
                 }
                 catch (ThreadAbortException e)
                 {
-                    Console.WriteLine(e);
+                    logger.Error(e, "Thread aborted");
                     return;
                 }
                 catch (Exception error)
                 {
-                    Console.WriteLine(error);
+                    logger.Error(error);
                 }
             }
         }
 
-        private TimeSpan halfSecond = TimeSpan.FromMilliseconds(300);
+        
         private void HandleQueueElems()
         {
             foreach (var controller in queue.GetConsumingEnumerable())
             {
-                if (DateTime.Now - controller.Start < halfSecond)
+                if (DateTime.Now - controller.Start < requestWaitingLimit)
                     Task.Run(() =>
                     {
                         controller.HandleRequest();
@@ -125,45 +137,9 @@ namespace Kontur.ImageTransformer
                     Task.Run(() =>
                     {
                         controller.RefuseRequestSafely();
-
                     });
             }
         }
-
-        private BlockingCollection<ImageController> queue;
-        private void HandleRequest(Controller controller)
-        {
-            
-            Task.Run(() =>
-            {
-                controller.HandleRequest();
-            });
-        }
-
-        private void RefuseRequest(Controller controller)
-        {
-            Task.Run(() =>
-            {
-                using (controller.Response)
-                {
-                    controller.RefuseRequestSafely();
-                }
-                
-            });
-        }
-
-        private void HandleContext(HttpListenerContext listenerContext)
-        {
-            // listenerContext.Response.StatusCode = (int) HttpStatusCode.OK;
-//           using (var writer = new StreamWriter(listenerContext.Response.OutputStream))
-//                writer.WriteLine("Hello, world!");
-        }
-
-        private readonly HttpListener listener;
-
-        private Thread listenerThread;
-        private Thread queueHandleThread;
-        private bool disposed;
-        private volatile bool isRunning;
+        
     }
 }

@@ -11,7 +11,7 @@ namespace Kontur.ImageTransformer
 {
     public class ImageController : Controller
     {
-        private ImageHandler imageHandler = new ImageHandler();
+        private readonly ImageHandler imageHandler = new ImageHandler();
         public DateTime Start { get; private set; }
         private const int BytesLimit = 100 * 1024;
 
@@ -34,15 +34,15 @@ namespace Kontur.ImageTransformer
                         return;
                     }
 
-                    var segment = Request.Url.Segments[2];
-                    var filter = segment.StartsWith("threshold(") && segment.EndsWith(")/")
+                    var filterSegment = Request.Url.Segments[2];
+                    var filter = filterSegment.StartsWith("threshold(") && filterSegment.EndsWith(")/")
                         ? "threshold"
-                        : segment.Substring(0, segment.Length - 1);
+                        : filterSegment.Substring(0, filterSegment.Length - 1);
                     switch (filter)
                     {
                         case "threshold":
                             int level;
-                            if (TryParseParam(segment, out level))
+                            if (TryParseParam(filterSegment, out level))
                                 HandleThreshold(level, x, y, height, width);
                             else
                                 SendBadRequest();
@@ -112,20 +112,12 @@ namespace Kontur.ImageTransformer
             HandlePicSegment(x, y, height, width, new SepiaBitmapAction(imageHandler));
         }
 
-        private delegate void SegmentHandler(Bitmap segment);
-
-        //private delegate void SegmentHandlerWithParam(Bitmap segment, int param);
 
         private void HandlePicSegment(int x, int y, int height, int width, BitmapAction action)
         {
             using (Request.InputStream)
             {
-                Bitmap pic;
-
-
-                pic = new Bitmap(Request.InputStream);
-
-
+                Bitmap pic = new Bitmap(Request.InputStream);
                 Bitmap segment;
                 if (!imageHandler.TryCropImage(pic, out segment, x, y, height, width))
                     SendNoContent();
