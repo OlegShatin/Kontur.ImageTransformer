@@ -10,7 +10,7 @@ namespace Kontur.ImageTransformer
 {
     internal class ImageHandler
     {
-        public bool TryCropImage(Bitmap source, out Bitmap result, int x, int y, int height, int width)
+        public bool TryCropImage(Bitmap source, out Bitmap result, int x, int y, int width, int height)
         {
             result = null;
             //normalize X and Y, so width and height are positive
@@ -27,7 +27,7 @@ namespace Kontur.ImageTransformer
             }
 
             //no intersections with source image 
-            if (x > source.Width || y > source.Height || (x + width) < 0 || (y + height) < 0)
+            if (x > source.Width - 1 || y > source.Height - 1 || (x + width) < 0 || (y + height) < 0)
                 return false;
 
             //coords of result image

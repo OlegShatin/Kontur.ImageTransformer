@@ -11,18 +11,11 @@ using Kontur.ImageTransformer;
 namespace ImageTransformer.Tests
 {
     [TestFixture]
-    public class AsyncHttpServerShould
+    public class AsyncHttpServerShould : TestWithImage
     {
         private AsyncHttpServer server;
 
-        private const string ValidPicPath =
-            "B:\\home\\oleg\\code\\csharp\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\LennaShort.png";
-
-        private const string LargePicPath =
-            "B:\\home\\oleg\\code\\csharp\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\Lenna.png";
-
-        private const string StoragePath =
-            "B:\\home\\oleg\\code\\csharp\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\";
+        
         [OneTimeSetUp]
         public void SetUp()
         {

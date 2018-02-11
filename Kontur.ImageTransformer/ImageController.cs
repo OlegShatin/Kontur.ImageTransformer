@@ -73,7 +73,7 @@ namespace Kontur.ImageTransformer
                 int lastBraceIndex = (segment.IndexOf(")"));
                 return int.TryParse(segment.Substring(firstDigitIndex, lastBraceIndex - firstDigitIndex), out level);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 level = 0;
                 return false;
@@ -119,7 +119,7 @@ namespace Kontur.ImageTransformer
             {
                 Bitmap pic = new Bitmap(Request.InputStream);
                 Bitmap segment;
-                if (!imageHandler.TryCropImage(pic, out segment, x, y, height, width))
+                if (!imageHandler.TryCropImage(pic, out segment, x, y, width, height))
                     SendNoContent();
                 else
                 {
