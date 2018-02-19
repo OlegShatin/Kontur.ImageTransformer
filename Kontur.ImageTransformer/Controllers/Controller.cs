@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace Kontur.ImageTransformer
+namespace Kontur.ImageTransformer.Controllers
 {
     public abstract class Controller
     {

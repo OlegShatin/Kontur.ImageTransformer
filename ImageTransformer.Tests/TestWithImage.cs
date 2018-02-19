@@ -1,20 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IO;
 
 namespace ImageTransformer.Tests
 {
     public class TestWithImage
     {
-        public const string ValidPicPath =
-            "B:\\home\\oleg\\code\\csharp\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\LennaShort.png";
+        public static readonly string ValidPicPath = System.AppDomain.CurrentDomain.BaseDirectory+"LennaShort.png";
 
-        public const string LargePicPath =
-            "B:\\home\\oleg\\code\\csharp\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\Lenna.png";
+        public static readonly string LargePicPath = System.AppDomain.CurrentDomain.BaseDirectory + "Lenna.png";
 
-        public const string StoragePath =
-            "B:\\home\\oleg\\code\\csharp\\CSharpProjects\\KonturImageTransformer\\ImageTransformer.Tests\\";
+        public static readonly string StoragePath = System.AppDomain.CurrentDomain.BaseDirectory;
     }
 }

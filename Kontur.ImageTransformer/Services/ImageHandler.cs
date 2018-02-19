@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace Kontur.ImageTransformer
+namespace Kontur.ImageTransformer.Services
 {
     internal class ImageHandler
     {
@@ -95,7 +92,9 @@ namespace Kontur.ImageTransformer
             int widthInBytes = bitmapData.Width * bytesPerPixel;
             byte* ptrFirstPixel = (byte*) bitmapData.Scan0;
 
-            Parallel.For(0, heightInPixels, y =>
+            /*Parallel.For(0, heightInPixels, y =>
+            {*/
+            for (int y = 0; y < heightInPixels; y++)
             {
                 byte* currentLine = ptrFirstPixel + (y * bitmapData.Stride);
                 for (int x = 0; x < widthInBytes; x = x + bytesPerPixel)
@@ -104,11 +103,13 @@ namespace Kontur.ImageTransformer
                     int green = currentLine[x + 1];
                     int red = currentLine[x + 2];
                     actionForRgbPixels.Invoke(ref red, ref green, ref blue);
-                    currentLine[x] = (byte) blue;
-                    currentLine[x + 1] = (byte) green;
-                    currentLine[x + 2] = (byte) red;
+                    currentLine[x] = (byte)blue;
+                    currentLine[x + 1] = (byte)green;
+                    currentLine[x + 2] = (byte)red;
                 }
-            });
+            }
+                
+            //});
             processedBitmap.UnlockBits(bitmapData);
         }
 

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Kontur.ImageTransformer.Controllers;
 using NLog;
 using NLog.Targets;
 
@@ -17,12 +17,13 @@ namespace Kontur.ImageTransformer
         private Thread queueHandleThread;
         private bool disposed;
         private volatile bool isRunning;
-        private readonly TimeSpan requestWaitingLimit = TimeSpan.FromMilliseconds(300);
+        private readonly TimeSpan requestWaitingLimit = TimeSpan.FromMilliseconds(200);
         private BlockingCollection<ImageController> queue;
-
+        private static readonly int maxParallelTasks = Environment.ProcessorCount / 2;
         public AsyncHttpServer()
         {
             listener = new HttpListener();
+            
         }
 
         public void Start(string prefix)
@@ -122,22 +123,27 @@ namespace Kontur.ImageTransformer
                 }
             }
         }
-
+        Semaphore semaphore = new Semaphore(maxParallelTasks + 1, maxParallelTasks + 1);
         
         private void HandleQueueElems()
         {
+            
             foreach (var controller in queue.GetConsumingEnumerable())
             {
+                semaphore.WaitOne();
                 if (DateTime.Now - controller.Start < requestWaitingLimit)
                     Task.Run(() =>
                     {
+                        semaphore.WaitOne();
                         controller.HandleRequest();
+                        semaphore.Release();
                     });
                 else
                     Task.Run(() =>
                     {
                         controller.RefuseRequestSafely();
                     });
+                semaphore.Release();
             }
         }
         

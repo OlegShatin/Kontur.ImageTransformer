@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.IO;
-using System.Linq;
 using System.Net;
+using Kontur.ImageTransformer.Services;
 
 
-namespace Kontur.ImageTransformer
+namespace Kontur.ImageTransformer.Controllers
 {
     public class ImageController : Controller
     {
@@ -28,7 +26,7 @@ namespace Kontur.ImageTransformer
                     Request.ContentLength64 < BytesLimit && Request.HttpMethod == "POST")
                 {
                     int x, y, height, width;
-                    if (!TryParseCoords(Request.Url.Segments[3], out x, out y, out height, out width))
+                    if (!TryParseCoords(Request.Url.Segments[3], out x, out y, out width, out height))
                     {
                         SendBadRequest();
                         return;
@@ -43,15 +41,15 @@ namespace Kontur.ImageTransformer
                         case "threshold":
                             int level;
                             if (TryParseParam(filterSegment, out level))
-                                HandleThreshold(level, x, y, height, width);
+                                HandleThreshold(level, x, y, width, height);
                             else
                                 SendBadRequest();
                             break;
                         case "sepia":
-                            HandleSepia(x, y, height, width);
+                            HandleSepia(x, y, width, height);
                             break;
                         case "grayscale":
-                            HandleGrayscale(x, y, height, width);
+                            HandleGrayscale(x, y, width, height);
                             break;
                         default:
                             SendBadRequest();
@@ -80,7 +78,7 @@ namespace Kontur.ImageTransformer
             }
         }
 
-        private bool TryParseCoords(string sourse, out int x, out int y, out int height, out int width)
+        private bool TryParseCoords(string sourse, out int x, out int y, out int width, out int height)
         {
             x = 0;
             y = 0;
@@ -94,26 +92,26 @@ namespace Kontur.ImageTransformer
                    int.TryParse(coords[2], out width) && int.TryParse(coords[3], out height);
         }
 
-        private void HandleThreshold(int level, int x, int y, int height, int width)
+        private void HandleThreshold(int level, int x, int y, int width, int height)
         {
             if (level < 0 || level > 100)
                 SendBadRequest();
             else
-                HandlePicSegment(x, y, height, width, new ThresholdBitmapAction(level, imageHandler));
+                HandlePicSegment(x, y, width, height, new ThresholdBitmapAction(level, imageHandler));
         }
 
-        private void HandleGrayscale(int x, int y, int height, int width)
+        private void HandleGrayscale(int x, int y, int width, int height)
         {
-            HandlePicSegment(x, y, height, width, new GrayscaleBitmapAction(imageHandler));
+            HandlePicSegment(x, y, width, height, new GrayscaleBitmapAction(imageHandler));
         }
 
-        private void HandleSepia(int x, int y, int height, int width)
+        private void HandleSepia(int x, int y, int width, int height)
         {
-            HandlePicSegment(x, y, height, width, new SepiaBitmapAction(imageHandler));
+            HandlePicSegment(x, y, width, height, new SepiaBitmapAction(imageHandler));
         }
 
 
-        private void HandlePicSegment(int x, int y, int height, int width, BitmapAction action)
+        private void HandlePicSegment(int x, int y, int width, int height, BitmapAction action)
         {
             using (Request.InputStream)
             {
