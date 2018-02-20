@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 
 namespace Kontur.ImageTransformer.Controllers
 {
@@ -8,11 +9,22 @@ namespace Kontur.ImageTransformer.Controllers
         public HttpListenerResponse Response { get; private set; }
         protected bool Closed = false;
 
+        public DateTime Created { get; private set; }
+
+        protected Controller(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            Created = DateTime.Now;
+            Request = request;
+            Response = response;
+        }
+
         protected Controller(HttpListenerContext listenerContext)
         {
+            Created = DateTime.Now;
             Request = listenerContext.Request;
             Response = listenerContext.Response;
         }
+
         protected void RefuseRequest()
         {
             Response.StatusCode = 429;
@@ -26,6 +38,7 @@ namespace Kontur.ImageTransformer.Controllers
             using (Response)
                 RefuseRequest();
         }
+
         public abstract void HandleRequest();
 
         protected void SendBadRequest()

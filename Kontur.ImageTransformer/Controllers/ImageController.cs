@@ -10,13 +10,11 @@ namespace Kontur.ImageTransformer.Controllers
     public class ImageController : Controller
     {
         private readonly ImageHandler imageHandler = new ImageHandler();
-        public DateTime Start { get; private set; }
         private const int BytesLimit = 100 * 1024;
-
-        public ImageController(HttpListenerContext listenerContext) : base(listenerContext)
+        public ImageController(HttpListenerRequest request, HttpListenerResponse response) : base(request, response)
         {
-            Start = DateTime.Now;
         }
+       
 
         public override void HandleRequest()
         {

@@ -15,7 +15,7 @@ namespace ImageTransformer.Tests
         public void FirstSetUp()
         {
             server = new AsyncHttpServer();
-            server.Start("http://localhost:8080/");
+            server.Run("http://localhost:8080/");
         }
 
 
