@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
@@ -25,6 +26,7 @@ namespace Kontur.ImageTransformer
                 server.Start("http://+:8080/");
                 Console.ReadKey(true);
             }
+            
         }
     }
 }

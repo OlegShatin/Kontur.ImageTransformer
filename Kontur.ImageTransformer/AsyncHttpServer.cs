@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Kontur.ImageTransformer.Controllers;
@@ -19,7 +22,7 @@ namespace Kontur.ImageTransformer
         private volatile bool isRunning;
         private readonly TimeSpan requestWaitingLimit = TimeSpan.FromMilliseconds(200);
         private BlockingCollection<ImageController> queue;
-        private static readonly int maxParallelTasks = Environment.ProcessorCount / 2;
+        private static readonly int maxParallelTasks = Environment.ProcessorCount ;
         public AsyncHttpServer()
         {
             listener = new HttpListener();
@@ -101,13 +104,7 @@ namespace Kontur.ImageTransformer
                     {
                         var listenerContext = listener.GetContext();
                         var controller = new ImageController(listenerContext);
-                        Task.Run(() =>
-                        {
-                            if (!queue.TryAdd(controller))
-                                logger.Error($"Context doesn't be added to queue, controller: " + DefaultJsonSerializer.Instance.SerializeObject(controller));
-                            
-                        });
-
+                        queue.Add(controller);
 
                     }
                     else Thread.Sleep(0);
@@ -130,22 +127,26 @@ namespace Kontur.ImageTransformer
             
             foreach (var controller in queue.GetConsumingEnumerable())
             {
+                
                 semaphore.WaitOne();
                 if (DateTime.Now - controller.Start < requestWaitingLimit)
                     Task.Run(() =>
                     {
-                        semaphore.WaitOne();
+                        //semaphore.WaitOne();
                         controller.HandleRequest();
                         semaphore.Release();
                     });
                 else
                     Task.Run(() =>
                     {
+                        //semaphore.WaitOne();
                         controller.RefuseRequestSafely();
+                        semaphore.Release();
                     });
-                semaphore.Release();
+                //semaphore.Release();
             }
         }
         
     }
+    
 }
