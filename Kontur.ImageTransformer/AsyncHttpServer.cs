@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -20,7 +21,7 @@ namespace Kontur.ImageTransformer
 
         private Func<HttpListenerRequest, HttpListenerResponse, Controller> controllerFactory =
             (req, resp) => new ImageController(req, resp);
-        
+
         readonly int accepts;
 
         /// <summary>
@@ -31,7 +32,8 @@ namespace Kontur.ImageTransformer
         /// Higher values mean more connections can be maintained yet at a much slower average response time; fewer connections will be rejected.
         /// Lower values mean less connections can be maintained yet at a much faster average response time; more connections will be rejected.
         /// </param>
-        public AsyncHttpServer(Func<HttpListenerRequest, HttpListenerResponse, Controller> controllerFactory = null, int accepts = 1)
+        public AsyncHttpServer(Func<HttpListenerRequest, HttpListenerResponse, Controller> controllerFactory = null,
+            int accepts = 1)
         {
             if (controllerFactory != null)
                 this.controllerFactory = controllerFactory;
@@ -40,19 +42,15 @@ namespace Kontur.ImageTransformer
             this.accepts = accepts * Environment.ProcessorCount;
         }
 
-        
 
         public List<string> Prefixes
         {
             get { return listener.Prefixes.ToList(); }
         }
 
-        
 
         public void Run(params string[] uriPrefixes)
         {
-            
-
             listener.IgnoreWriteExceptions = true;
 
             // Add the server bindings:
@@ -61,9 +59,6 @@ namespace Kontur.ImageTransformer
 
             Task.Run(async () =>
             {
-                
-                
-
                 try
                 {
                     // Start the HTTP listener:
@@ -79,36 +74,38 @@ namespace Kontur.ImageTransformer
                 // Higher values mean more connections can be maintained yet at a much slower average response time; fewer connections will be rejected.
                 // Lower values mean less connections can be maintained yet at a much faster average response time; more connections will be rejected.
                 var sem = new Semaphore(accepts, accepts);
-
+                var waitStart = DateTime.Now;
                 while (true)
                 {
+                    waitStart = DateTime.Now;
                     sem.WaitOne();
-
 #pragma warning disable 4014
-                    listener.GetContextAsync().ContinueWith(async (t) =>
+                    listener.GetContextAsync().ContinueWith(async (t, o) =>
                     {
-                        
-
                         try
                         {
                             sem.Release();
 
                             var ctx = await t;
-                            await ProcessListenerContext(ctx);
+                            await ProcessListenerContext(ctx, (DateTime)o);
                         }
                         catch (Exception ex)
                         {
                             logger.Error(ex);
                         }
-
-                        
-                    });
+                    }, waitStart);
 #pragma warning restore 4014
                 }
             }).Wait();
         }
 
-        async Task ProcessListenerContext(HttpListenerContext listenerContext)
+        enum ProcessStrategy
+        {
+            Refuse,
+            Handle
+        }
+
+        async Task ProcessListenerContext(HttpListenerContext listenerContext, DateTime waitStart)
         {
             try
             {
@@ -117,7 +114,7 @@ namespace Kontur.ImageTransformer
                 if (controller != null)
                 {
                     // Take the action and await its completion:
-                    await  Task.Factory.StartNew(() => DecideAndHandle(controller));
+                    await Task.Factory.StartNew(() => DecideAndHandle(controller, waitStart));
                 }
             }
             catch (HttpListenerException e)
@@ -130,10 +127,12 @@ namespace Kontur.ImageTransformer
                 logger.Error(ex.ToString());
             }
         }
+
         TimeSpan waitLimit = TimeSpan.FromMilliseconds(300);
-        void DecideAndHandle(Controller controller)
+
+        void DecideAndHandle(Controller controller, DateTime waitStart)
         {
-            if (DateTime.Now - controller.Created < waitLimit)
+            if (DateTime.Now - waitStart < waitLimit)
                 controller.HandleRequest();
             else
                 controller.RefuseRequestSafely();
