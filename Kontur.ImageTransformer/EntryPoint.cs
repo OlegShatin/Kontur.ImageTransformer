@@ -24,16 +24,16 @@ namespace Kontur.ImageTransformer
             LogManager.Configuration = config;
 
 
-            var server = new AsyncHttpServer();
+            /*var server = new AsyncHttpServer();
             server.Run("http://+:8080/");
-            Console.ReadKey(true);
+            Console.ReadKey(true);*/
 
-            /*var host = new HttpAsyncHost(new Handler(), 1);
-            host.Run("http://+:8080/");*/
+            var host = new HttpAsyncHost(new Handler(), 4);
+            host.Run("http://+:8080/");
         }
     }
 
-    /*class Handler : IHttpAsyncHandler
+    class Handler : IHttpAsyncHandler
     {
         public Task<IHttpResponseAction> Execute(IHttpRequestContext state)
         {
@@ -49,5 +49,5 @@ namespace Kontur.ImageTransformer
                 
             }
         }
-    }*/
+    }
 }
