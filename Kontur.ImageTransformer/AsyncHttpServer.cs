@@ -33,7 +33,7 @@ namespace Kontur.ImageTransformer
         /// Lower values mean less connections can be maintained yet at a much faster average response time; more connections will be rejected.
         /// </param>
         public AsyncHttpServer(Func<HttpListenerRequest, HttpListenerResponse, Controller> controllerFactory = null,
-            int accepts = 1)
+            int accepts = 4)
         {
             if (controllerFactory != null)
                 this.controllerFactory = controllerFactory;
