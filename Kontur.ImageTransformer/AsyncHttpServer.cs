@@ -42,15 +42,14 @@ namespace Kontur.ImageTransformer
                     queue = new BlockingCollection<ImageController>(new ConcurrentQueue<ImageController>());
                     queueHandleThread = new Thread(HandleQueueElems)
                     {
-                        IsBackground = true,
-                        Priority = ThreadPriority.AboveNormal
+                        IsBackground = true
                     };
                     queueHandleThread.Start();
 
                     listenerThread = new Thread(Listen)
                     {
                         IsBackground = true,
-                        Priority = ThreadPriority.AboveNormal
+                        Priority = ThreadPriority.Highest
                     };
                     listenerThread.Start();
                     isRunning = true;
