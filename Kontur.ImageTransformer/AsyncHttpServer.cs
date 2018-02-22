@@ -74,26 +74,26 @@ namespace Kontur.ImageTransformer
                 // Higher values mean more connections can be maintained yet at a much slower average response time; fewer connections will be rejected.
                 // Lower values mean less connections can be maintained yet at a much faster average response time; more connections will be rejected.
                 var sem = new Semaphore(accepts, accepts);
-                var waitStart = DateTime.Now;
+//                var waitStart = DateTime.Now;
                 while (true)
                 {
-                    waitStart = DateTime.Now;
+  //                  waitStart = DateTime.Now;
                     sem.WaitOne();
 #pragma warning disable 4014
-                    listener.GetContextAsync().ContinueWith(async (t, o) =>
+                    listener.GetContextAsync().ContinueWith(async (t) =>
                     {
                         try
                         {
                             sem.Release();
 
                             var ctx = await t;
-                            await ProcessListenerContext(ctx, (DateTime)o);
+                            await ProcessListenerContext(ctx);
                         }
                         catch (Exception ex)
                         {
                             logger.Error(ex);
                         }
-                    }, waitStart);
+                    });
 #pragma warning restore 4014
                 }
             }).Wait();
@@ -132,7 +132,7 @@ namespace Kontur.ImageTransformer
 
         void DecideAndHandle(Controller controller, DateTime waitStart)
         {
-            if (DateTime.Now - waitStart < waitLimit)
+            if ()
                 controller.HandleRequest();
             else
                 controller.RefuseRequestSafely();
