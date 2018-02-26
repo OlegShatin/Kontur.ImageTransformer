@@ -20,7 +20,7 @@ namespace Kontur.ImageTransformer
         private Thread queueHandleThread;
         private bool disposed;
         private volatile bool isRunning;
-        private readonly TimeSpan requestWaitingLimit = TimeSpan.FromMilliseconds(200);
+        private readonly TimeSpan requestWaitingLimit = TimeSpan.FromMilliseconds(500);
         private BlockingCollection<ImageController> queue;
         private static readonly int maxParallelTasks = Environment.ProcessorCount * 4 ;
         public AsyncHttpServer()
