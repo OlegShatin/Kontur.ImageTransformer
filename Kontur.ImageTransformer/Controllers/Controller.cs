@@ -1,55 +1,46 @@
 ﻿using System.Net;
+using SAEAHTTPD;
+using HttpStatusCode = System.Net.HttpStatusCode;
 
 namespace Kontur.ImageTransformer.Controllers
 {
     public abstract class Controller
     {
-        public HttpListenerRequest Request { get; private set; }
-        public HttpListenerResponse Response { get; private set; }
-        protected bool Closed = false;
+        public HttpRequest Request { get; }
+        public HttpResponse Response { get; }
 
-        protected Controller(HttpListenerContext listenerContext)
+
+        protected Controller(HttpRequest request, HttpResponse response)
         {
-            Request = listenerContext.Request;
-            Response = listenerContext.Response;
+            Request = request;
+            Response = response;
         }
+
         protected void RefuseRequest()
         {
-            Response.StatusCode = 429;
-            if (!Closed)
-                Response.Close();
-            Closed = true;
+            Response.Status = SAEAHTTPD.HttpStatusCode.UseProxy;
         }
 
         public void RefuseRequestSafely()
         {
-            using (Response)
-                RefuseRequest();
+            RefuseRequest();
         }
+
         public abstract void HandleRequest();
 
         protected void SendBadRequest()
         {
-            Response.StatusCode = (int) HttpStatusCode.BadRequest;
-            if (!Closed)
-                Response.Close();
-            Closed = true;
+            Response.Status = SAEAHTTPD.HttpStatusCode.BadRequest;
         }
 
         protected void SendNotFound()
         {
-            Response.StatusCode = (int) HttpStatusCode.NotFound;
-            if (!Closed)
-                Response.Close();
-            Closed = true;
+            Response.Status = SAEAHTTPD.HttpStatusCode.NotFound;
         }
 
         protected void SendNoContent()
         {
-            Response.StatusCode = (int) HttpStatusCode.NoContent;
-            if (!Closed)
-                Response.Close();
-            Closed = true;
+            Response.Status = SAEAHTTPD.HttpStatusCode.NoContent;
         }
     }
 }

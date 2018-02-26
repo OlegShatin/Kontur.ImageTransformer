@@ -1,21 +1,30 @@
 ﻿using NUnit.Framework;
 using System.IO;
 using System.Net;
+using System.Threading.Tasks;
 using Kontur.ImageTransformer;
+using SAEAHTTPD;
 
 namespace ImageTransformer.Tests
 {
     [TestFixture]
     public class ImageControllerShould : TestWithImage
     {
-        private AsyncHttpServer server;
+        private HttpServer server;
 
 
         [OneTimeSetUp]
         public void FirstSetUp()
         {
-            server = new AsyncHttpServer();
-            server.Start("http://localhost:8080/");
+            server = new HttpServer(10, 20, 100 * 1024);
+            Task.Run(() =>
+            {
+               
+                server.OnHttpRequest += EntryPoint.server_OnHttpRequest;
+                server.Start(new IPEndPoint(IPAddress.Any, 8080));
+                
+            }).ConfigureAwait(false);
+
         }
 
 
@@ -110,7 +119,7 @@ namespace ImageTransformer.Tests
         [OneTimeTearDown]
         public void TearDown()
         {
-            server.Stop();
+            server.Stop(false);
         }
 
         #region Helper methods

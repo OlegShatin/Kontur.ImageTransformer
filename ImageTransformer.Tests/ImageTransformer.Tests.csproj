@@ -50,6 +50,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\libs\dotnet\SAEA-HTTPD\SAEA-HTTPD\SAEA-HTTPD.csproj">
+      <Project>{8f573429-c748-45b0-9cd1-930d6c86a2bb}</Project>
+      <Name>SAEA-HTTPD</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Kontur.ImageTransformer\Kontur.ImageTransformer.csproj">
       <Project>{9801585b-d1aa-4078-b9c4-7b7f8883e55e}</Project>
       <Name>Kontur.ImageTransformer</Name>

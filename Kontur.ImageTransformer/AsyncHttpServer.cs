@@ -97,12 +97,12 @@ namespace Kontur.ImageTransformer
             while (true)
             {
                 
-                try
+                /*try
                 {
                     if (listener.IsListening)
                     {
                         var listenerContext = listener.GetContext();
-                        var controller = new ImageController(listenerContext);
+                        var controller = new ImageController(listenerContext.Request, listenerContext.Response);
                         queue.Add(controller);
 
                     }
@@ -116,7 +116,7 @@ namespace Kontur.ImageTransformer
                 catch (Exception error)
                 {
                     logger.Error(error);
-                }
+                }*/
             }
         }
         Semaphore semaphore = new Semaphore(maxParallelTasks + 1, maxParallelTasks + 1);

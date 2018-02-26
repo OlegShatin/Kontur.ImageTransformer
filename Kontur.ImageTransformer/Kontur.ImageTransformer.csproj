@@ -88,5 +88,11 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\libs\dotnet\SAEA-HTTPD\SAEA-HTTPD\SAEA-HTTPD.csproj">
+      <Project>{8F573429-C748-45B0-9CD1-930D6C86A2BB}</Project>
+      <Name>SAEA-HTTPD</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

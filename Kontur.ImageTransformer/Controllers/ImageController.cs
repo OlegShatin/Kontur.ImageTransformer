@@ -1,65 +1,66 @@
 ﻿using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Net;
+using System.Security.Policy;
 using Kontur.ImageTransformer.Services;
-
+using SAEAHTTPD;
+using HttpStatusCode = SAEAHTTPD.HttpStatusCode;
 
 namespace Kontur.ImageTransformer.Controllers
 {
     public class ImageController : Controller
     {
         private readonly ImageHandler imageHandler = new ImageHandler();
+
         public DateTime Start { get; private set; }
         private const int BytesLimit = 100 * 1024;
 
-        public ImageController(HttpListenerContext listenerContext) : base(listenerContext)
+
+        public ImageController(HttpRequest request, HttpResponse response) : base(request, response)
         {
-            Start = DateTime.Now;
         }
 
         public override void HandleRequest()
         {
-            using (Response)
+            if (Request.Url.Segments.Length == 4 && Request.Url.Segments[1] == "process/" &&
+                Request.Length < BytesLimit && Request.Method == "POST")
             {
-                if (Request.Url.Segments.Length == 4 && Request.Url.Segments[1] == "process/" &&
-                    Request.ContentLength64 < BytesLimit && Request.HttpMethod == "POST")
-                {
-                    int x, y, height, width;
-                    if (!TryParseCoords(Request.Url.Segments[3], out x, out y, out width, out height))
-                    {
-                        SendBadRequest();
-                        return;
-                    }
-
-                    var filterSegment = Request.Url.Segments[2];
-                    var filter = filterSegment.StartsWith("threshold(") && filterSegment.EndsWith(")/")
-                        ? "threshold"
-                        : filterSegment.Substring(0, filterSegment.Length - 1);
-                    switch (filter)
-                    {
-                        case "threshold":
-                            int level;
-                            if (TryParseParam(filterSegment, out level))
-                                HandleThreshold(level, x, y, width, height);
-                            else
-                                SendBadRequest();
-                            break;
-                        case "sepia":
-                            HandleSepia(x, y, width, height);
-                            break;
-                        case "grayscale":
-                            HandleGrayscale(x, y, width, height);
-                            break;
-                        default:
-                            SendBadRequest();
-                            break;
-                    }
-                }
-                else
+                int x, y, height, width;
+                if (!TryParseCoords(Request.Url.Segments[3], out x, out y, out width, out height))
                 {
                     SendBadRequest();
+                    return;
                 }
+
+                var filterSegment = Request.Url.Segments[2];
+                var filter = filterSegment.StartsWith("threshold(") && filterSegment.EndsWith(")/")
+                    ? "threshold"
+                    : filterSegment.Substring(0, filterSegment.Length - 1);
+                switch (filter)
+                {
+                    case "threshold":
+                        int level;
+                        if (TryParseParam(filterSegment, out level))
+                            HandleThreshold(level, x, y, width, height);
+                        else
+                            SendBadRequest();
+                        break;
+                    case "sepia":
+                        HandleSepia(x, y, width, height);
+                        break;
+                    case "grayscale":
+                        HandleGrayscale(x, y, width, height);
+                        break;
+                    default:
+                        SendBadRequest();
+                        break;
+                }
+            }
+            else
+            {
+                SendBadRequest();
             }
         }
 
@@ -113,18 +114,18 @@ namespace Kontur.ImageTransformer.Controllers
 
         private void HandlePicSegment(int x, int y, int width, int height, BitmapAction action)
         {
-            using (Request.InputStream)
+            using (var reqStream = new MemoryStream(Request.Body))
             {
-                Bitmap pic = new Bitmap(Request.InputStream);
+                Bitmap pic = new Bitmap(reqStream);
                 Bitmap segment;
                 if (!imageHandler.TryCropImage(pic, out segment, x, y, width, height))
                     SendNoContent();
                 else
                 {
                     action.Invoke(segment);
-                    using (Response.OutputStream)
-                        segment.Save(Response.OutputStream, ImageFormat.Png);
-                    Response.Close();
+                    segment.Save(Response.OutputStream, ImageFormat.Png);
+                    Response.Status = HttpStatusCode.OK;
+                    
                 }
             }
         }
