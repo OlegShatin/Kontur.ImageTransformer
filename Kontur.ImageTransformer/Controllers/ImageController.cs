@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Net;
+using Ether.Network.Packets;
 using Kontur.ImageTransformer.Services;
 
 
@@ -18,10 +19,14 @@ namespace Kontur.ImageTransformer.Controllers
             Start = DateTime.Now;
         }
 
+        public ImageController(NetPacket netPacket) : base(netPacket)
+        {
+            
+        }
+
         public override void HandleRequest()
         {
-            using (Response)
-            {
+            
                 if (Request.Url.Segments.Length == 4 && Request.Url.Segments[1] == "process/" &&
                     Request.ContentLength64 < BytesLimit && Request.HttpMethod == "POST")
                 {
@@ -60,7 +65,7 @@ namespace Kontur.ImageTransformer.Controllers
                 {
                     SendBadRequest();
                 }
-            }
+            
         }
 
         private bool TryParseParam(string segment, out int level)

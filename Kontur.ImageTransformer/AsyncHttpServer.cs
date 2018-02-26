@@ -7,7 +7,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Ether.Network;
+using Ether.Network.Common;
 using Ether.Network.Packets;
+using Ether.Network.Server;
 using Kontur.ImageTransformer.Controllers;
 using NLog;
 using NLog.Targets;
@@ -23,6 +25,7 @@ namespace Kontur.ImageTransformer
             this.Configuration.MaximumNumberOfConnections = 100;
             this.Configuration.Host = "169.254.6.29";
             this.Configuration.BufferSize = 110 * 1024;
+            this.Configuration.Blocking = true;
         }
         protected override void Initialize()
         {
@@ -37,15 +40,22 @@ namespace Kontur.ImageTransformer
         protected override void OnClientDisconnected(Conn connection)
         {
         }
+
+        protected override void OnError(Exception exception)
+        {
+            
+        }
     }
 
-    public class Conn : NetConnection
+    public class Conn : NetUser
     {
-        public override void HandleMessage(NetPacketBase packet)
+        public override void HandleMessage(INetPacketStream packet)
         {
+            
             using (var resppacket = new NetPacket())
             {
-                resppacket.Write("HTTP/1.1 200 OK");
+                Controller ctr = new ImageController(resppacket);
+                //resppacket.Write("HTTP/1.1 200 OK");
                 this.Send(resppacket);
             }
         }
