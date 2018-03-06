@@ -22,7 +22,7 @@ namespace Kontur.ImageTransformer
         private volatile bool isRunning;
         private readonly TimeSpan requestWaitingLimit = TimeSpan.FromMilliseconds(500);
         private BlockingCollection<ImageController> queue;
-        private static readonly int maxParallelTasks = Environment.ProcessorCount * 4 ;
+        private static readonly int maxParallelTasks = Environment.ProcessorCount;
         public AsyncHttpServer()
         {
             listener = new HttpListener();
