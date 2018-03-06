@@ -129,19 +129,20 @@ namespace Kontur.ImageTransformer
                 
                 semaphore.WaitOne();
                 if (DateTime.Now - controller.Start < requestWaitingLimit)
-                    Task.Run(() =>
+                    Task.Factory.StartNew((ctr) =>
                     {
                         //semaphore.WaitOne();
-                        controller.HandleRequest();
+
+                        ((Controller)ctr).HandleRequest();
                         semaphore.Release();
-                    });
+                    }, controller);
                 else
-                    Task.Run(() =>
+                    Task.Factory.StartNew((ctr) =>
                     {
                         //semaphore.WaitOne();
-                        controller.RefuseRequestSafely();
+                        ((Controller)ctr).RefuseRequestSafely();
                         semaphore.Release();
-                    });
+                    }, controller);
                 //semaphore.Release();
             }
         }
