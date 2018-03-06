@@ -19,8 +19,8 @@ namespace Kontur.ImageTransformer.Infrastruct
         private BlockingCollection<QueueWaitingEntry<HttpListenerContext>> queue;
 
         private Thread queueHandleThread;
-        Semaphore semaphore = new Semaphore(maxParallelTasks + 1, maxParallelTasks + 1);
-        private static readonly int maxParallelTasks = Environment.ProcessorCount * 4;
+        Semaphore semaphore = new Semaphore(maxParallelTasks, maxParallelTasks);
+        private static readonly int maxParallelTasks = Environment.ProcessorCount;
         private bool disposed;
 
         public LoadThrottlerMiddleware()
