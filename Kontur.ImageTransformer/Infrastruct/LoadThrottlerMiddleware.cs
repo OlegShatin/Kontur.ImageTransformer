@@ -6,7 +6,6 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Kontur.ImageTransformer.Controllers;
 using PipelineNet.Middleware;
 
 namespace Kontur.ImageTransformer.Infrastruct
@@ -15,57 +14,39 @@ namespace Kontur.ImageTransformer.Infrastruct
     {
 
         private readonly TimeSpan waitingLimit = TimeSpan.FromMilliseconds(500);
-
-        private BlockingCollection<QueueWaitingEntry<HttpListenerContext>> queue;
-
-        private Thread queueHandleThread;
-        Semaphore semaphore = new Semaphore(maxParallelTasks, maxParallelTasks);
-        private static readonly int maxParallelTasks = Environment.ProcessorCount;
+        
+        
+        private static readonly int maxParallelTasks = Environment.ProcessorCount * 4;
         private bool disposed;
 
         public LoadThrottlerMiddleware()
         {
-            queue = new BlockingCollection<QueueWaitingEntry<HttpListenerContext>>(new ConcurrentQueue<QueueWaitingEntry<HttpListenerContext>>());
-            queueHandleThread = new Thread(HandleQueueElems)
-            {
-                IsBackground = true
-            };
-            queueHandleThread.Start();
+            ThreadPool.SetMaxThreads(maxParallelTasks, 1000);
+            ThreadPool.SetMinThreads(maxParallelTasks, 1000);
         }
+        
         public void Run(HttpListenerContext context, Action<HttpListenerContext> next)
         {
-            queue.Add(new QueueWaitingEntry<HttpListenerContext>(context, next));
-        }
-        private void HandleQueueElems()
-        {
-
-            foreach (var contextEntry in queue.GetConsumingEnumerable())
+            Task.Factory.StartNew(o =>
             {
-
-                semaphore.WaitOne();
+                var contextEntry = (QueueWaitingEntry<HttpListenerContext>)o;
                 if (DateTime.Now - contextEntry.EnqueuedAt < waitingLimit)
-                    Task.Factory.StartNew(o =>
-                    {
-                        var entry = (QueueWaitingEntry<HttpListenerContext>)o;
-                        entry.NextHandler.Invoke(entry.Elem);
-
-                        semaphore.Release();
-
-                    }, contextEntry);
+                    
+                    {                        
+                        contextEntry.NextHandler.Invoke(contextEntry.Elem);
+                    }
                 else
-                    Task.Factory.StartNew(o =>
+                    
                     {
-                        var context = (HttpListenerContext)o; 
-                        using (context.Response)
+                        using (contextEntry.Elem.Response)
                         {
-                            context.Response.StatusCode = 429;
-                            context.Response.Close();
+                            contextEntry.Elem.Response.StatusCode = 429;
+                            contextEntry.Elem.Response.Close();
                         }
-                        semaphore.Release();
-                    }, contextEntry.Elem);
-                //semaphore.Release();
-            }
+                    }
+            }, new QueueWaitingEntry<HttpListenerContext>(context, next));
         }
+        
         
 
         public void Dispose()
@@ -73,10 +54,6 @@ namespace Kontur.ImageTransformer.Infrastruct
             if (disposed)
                 return;
             disposed = true;
-            queueHandleThread.Abort();
-            queueHandleThread.Join();
-            queue?.Dispose();
-            semaphore?.Dispose();
         }
 
         private class QueueWaitingEntry<T>
