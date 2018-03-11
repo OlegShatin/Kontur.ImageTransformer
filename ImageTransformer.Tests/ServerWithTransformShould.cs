@@ -22,7 +22,7 @@ namespace ImageTransformer.Tests
         [Test]
         public void UploadCorrectPic_AndRotateCw()
         {
-            var req = (HttpWebRequest) HttpWebRequest.Create(Host + "process/rotate-cw/125,0,125,170");
+            var req = (HttpWebRequest) HttpWebRequest.Create(Host + "process/rotate-cw/55,75,70,70");
             SetUpRequestCorrectly(req);
             AttachCorrectPicToRequest(req);
             var resp = req.GetResponse();
@@ -36,7 +36,7 @@ namespace ImageTransformer.Tests
         public void UploadCorrectPic_AndRotateCww()
         {
             var req = (HttpWebRequest) HttpWebRequest.Create(
-                Host + "process/rotate-cw/125,0,125,170");
+                Host + "process/rotate-cww/125,0,125,170");
             SetUpRequestCorrectly(req);
             AttachCorrectPicToRequest(req);
             var resp = req.GetResponse();
