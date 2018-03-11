@@ -12,42 +12,58 @@ namespace Kontur.ImageTransformer.Infrastruct
 {
     public class LoadThrottlerMiddleware : IMiddleware<HttpListenerContext>, IDisposable
     {
+        //
+        private const int WaitingLimitMs = 200;
+        private const int WaitingBufferMs = 800 - WaitingLimitMs;
 
-        private readonly TimeSpan waitingLimit = TimeSpan.FromMilliseconds(500);
-        
-        
-        private static readonly int maxParallelTasks = Environment.ProcessorCount * 4;
+        private readonly int maxBufferizationQueueLength = 350 * Environment.ProcessorCount;
+        private int queueLength = 0;
+
+        private static readonly int maxParallelTasks = Environment.ProcessorCount * 25;
         private bool disposed;
 
         public LoadThrottlerMiddleware()
         {
             ThreadPool.SetMaxThreads(maxParallelTasks, 1000);
-            ThreadPool.SetMinThreads(maxParallelTasks, 1000);
         }
-        
+
         public void Run(HttpListenerContext context, Action<HttpListenerContext> next)
         {
-            Task.Factory.StartNew(o =>
+            /*Task.Factory.StartNew(o =>
             {
                 var contextEntry = (QueueWaitingEntry<HttpListenerContext>)o;
-                if (DateTime.Now - contextEntry.EnqueuedAt < waitingLimit)
-                    
-                    {                        
-                        contextEntry.NextHandler.Invoke(contextEntry.Elem);
-                    }
-                else
-                    
+                
+                    using (contextEntry.Elem.Response)
                     {
-                        using (contextEntry.Elem.Response)
-                        {
-                            contextEntry.Elem.Response.StatusCode = 429;
-                            contextEntry.Elem.Response.Close();
-                        }
+                        contextEntry.Elem.Response.StatusCode = 429;
+                        contextEntry.Elem.Response.Close();
                     }
+                
+            }, new QueueWaitingEntry<HttpListenerContext>(context, next));*/
+            Interlocked.Increment(ref queueLength);
+            Task.Factory.StartNew(o =>
+            {
+                var contextEntry = (QueueWaitingEntry<HttpListenerContext>) o;
+                if ((DateTime.Now - contextEntry.EnqueuedAt).Milliseconds < WaitingLimitMs +
+                    (queueLength > maxParallelTasks ? WaitingBufferMs * queueLength / maxBufferizationQueueLength : 0))
+
+                {
+                    contextEntry.NextHandler.Invoke(contextEntry.Elem);
+                }
+                else
+
+                {
+                    using (contextEntry.Elem.Response)
+                    {
+                        contextEntry.Elem.Response.StatusCode = 429;
+                        contextEntry.Elem.Response.Close();
+                    }
+                }
+
+                Interlocked.Decrement(ref queueLength);
             }, new QueueWaitingEntry<HttpListenerContext>(context, next));
         }
-        
-        
+
 
         public void Dispose()
         {
@@ -61,6 +77,7 @@ namespace Kontur.ImageTransformer.Infrastruct
             public T Elem { get; }
             public Action<T> NextHandler { get; }
             public DateTime EnqueuedAt { get; }
+
             public QueueWaitingEntry(T elem, Action<T> nextHandler)
             {
                 Elem = elem;
@@ -68,6 +85,5 @@ namespace Kontur.ImageTransformer.Infrastruct
                 EnqueuedAt = DateTime.Now;
             }
         }
-
     }
 }
