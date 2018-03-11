@@ -73,6 +73,7 @@
     <Compile Include="Controllers\ImageController.cs" />
     <Compile Include="Infrastruct\LoadThrottlerMiddleware.cs" />
     <Compile Include="Infrastruct\SingleImageControllerMiddleware.cs" />
+    <Compile Include="Services\TransformCoords.cs" />
     <Compile Include="Services\ImageHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="AsyncHttpServer.cs" />

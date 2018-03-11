@@ -41,6 +41,7 @@ namespace Kontur.ImageTransformer.Infrastruct
                 
             }, new QueueWaitingEntry<HttpListenerContext>(context, next));*/
             Interlocked.Increment(ref queueLength);
+            
             Task.Factory.StartNew(o =>
             {
                 var contextEntry = (QueueWaitingEntry<HttpListenerContext>) o;
