@@ -48,22 +48,22 @@ namespace ImageTransformer.Tests
         [Test]
         public void UploadCorrectPic_AndFlipV()
         {
-            var req = (HttpWebRequest) HttpWebRequest.Create(Host + "process/flip-v/125,0,125,170");
+            var req = (HttpWebRequest) HttpWebRequest.Create(Host + "process/flip-v/30,0,125,170");
             SetUpRequestCorrectly(req);
             AttachCorrectPicToRequest(req);
             var resp = req.GetResponse();
-            SaveFileFromResponse(resp, "TestFileSepia.png");
+            SaveFileFromResponse(resp, "TestFileFlipV.png");
             Assert.AreEqual(200, (int) ((HttpWebResponse) resp).StatusCode);
         }
 
         [Test]
         public void UploadCorrectPic_AndFlipH()
         {
-            var req = (HttpWebRequest) HttpWebRequest.Create(Host + "process/flip-h/125,0,125,170");
+            var req = (HttpWebRequest) HttpWebRequest.Create(Host + "process/flip-h/30,0,125,170");
             SetUpRequestCorrectly(req);
             AttachCorrectPicToRequest(req);
             var resp = req.GetResponse();
-            SaveFileFromResponse(resp, "TestFileSepia.png");
+            SaveFileFromResponse(resp, "TestFileFlipH.png");
             Assert.AreEqual(200, (int) ((HttpWebResponse) resp).StatusCode);
         }
 
