@@ -6,69 +6,84 @@ using Kontur.ImageTransformer;
 namespace ImageTransformer.Tests
 {
     [TestFixture]
-    public class ImageControllerShould : TestWithImage
+    public class ServerWithTransformShould : TestWithImage
     {
         private AsyncHttpServer server;
-
+        private const string Host = "http://localhost:8080/";
 
         [OneTimeSetUp]
         public void FirstSetUp()
         {
             server = new AsyncHttpServer();
-            server.Start("http://localhost:8080/");
+            server.Start(Host);
         }
 
 
         [Test]
-        public void UploadCorrectPicGrayscale()
+        public void UploadCorrectPic_AndRotateCw()
         {
-            var req = (HttpWebRequest) HttpWebRequest.Create("http://localhost:8080/" + "process/grayscale/0,0,10,15");
+            var req = (HttpWebRequest) HttpWebRequest.Create(Host + "process/rotate-cw/125,0,125,170");
             SetUpRequestCorrectly(req);
             AttachCorrectPicToRequest(req);
             var resp = req.GetResponse();
-            SaveFileFromResponse(resp, "TestFileGrayscale.png");
+            SaveFileFromResponse(resp, "TestFileRotateCw.png");
 
             Assert.AreEqual(200, (int) ((HttpWebResponse) resp).StatusCode);
         }
 
 
         [Test]
-        public void UploadCorrectPicThreshold()
+        public void UploadCorrectPic_AndRotateCww()
         {
             var req = (HttpWebRequest) HttpWebRequest.Create(
-                "http://localhost:8080/" + "process/threshold(50)/0,0,512,512");
+                Host + "process/rotate-cw/125,0,125,170");
             SetUpRequestCorrectly(req);
             AttachCorrectPicToRequest(req);
             var resp = req.GetResponse();
-            SaveFileFromResponse(resp, "TestFileThreshold.png");
+            SaveFileFromResponse(resp, "TestFileRotateCww.png");
 
             Assert.AreEqual(200, (int) ((HttpWebResponse) resp).StatusCode);
         }
 
         [Test]
-        public void UploadCorrectPicSepia()
+        public void UploadCorrectPic_AndFlipV()
         {
-            var req = (HttpWebRequest) HttpWebRequest.Create("http://localhost:8080/" + "process/sepia/0,0,10,15");
+            var req = (HttpWebRequest) HttpWebRequest.Create(Host + "process/flip-v/125,0,125,170");
             SetUpRequestCorrectly(req);
             AttachCorrectPicToRequest(req);
             var resp = req.GetResponse();
             SaveFileFromResponse(resp, "TestFileSepia.png");
             Assert.AreEqual(200, (int) ((HttpWebResponse) resp).StatusCode);
         }
+
         [Test]
-        public void ResponseWithNoContent_WhenThereIsNoIntersections()
+        public void UploadCorrectPic_AndFlipH()
         {
-            var req = (HttpWebRequest)HttpWebRequest.Create("http://localhost:8080/" + "process/sepia/-1,0,-10,15");
+            var req = (HttpWebRequest) HttpWebRequest.Create(Host + "process/flip-h/125,0,125,170");
             SetUpRequestCorrectly(req);
             AttachCorrectPicToRequest(req);
             var resp = req.GetResponse();
-            Assert.AreEqual(204, (int)((HttpWebResponse)resp).StatusCode);
+            SaveFileFromResponse(resp, "TestFileSepia.png");
+            Assert.AreEqual(200, (int) ((HttpWebResponse) resp).StatusCode);
+        }
+
+        [TestCase("flip-v")]
+        [TestCase("flip-h")]
+        [TestCase("rotate-cw")]
+        [TestCase("rotate-cww")]
+        public void ResponseWithNoContent_WhenThereIsNoIntersections(string transform)
+        {
+            var req = (HttpWebRequest) HttpWebRequest.Create(Host + $"process/{transform}/-1,0,-10,15");
+            SetUpRequestCorrectly(req);
+            AttachCorrectPicToRequest(req);
+            var resp = req.GetResponse();
+            Assert.AreEqual(204, (int) ((HttpWebResponse) resp).StatusCode);
         }
 
         [Test]
         public void RefuseOver100KBPic()
         {
-            var req = (HttpWebRequest) HttpWebRequest.Create("http://localhost:8080/" + "process/sepia/300,30,300,100");
+            var req = (HttpWebRequest) HttpWebRequest.Create(Host + "process/flip-h/0,0,300,100");
             SetUpRequestCorrectly(req);
             AttachTooLargePicToRequest(req);
             AssertResponseHasFailCode(req, 400);
@@ -78,7 +93,7 @@ namespace ImageTransformer.Tests
         [Test]
         public void RefuseNotPostRequest()
         {
-            var req = (HttpWebRequest) HttpWebRequest.Create("http://localhost:8080/" + "process/sepia/300,30,300,100");
+            var req = (HttpWebRequest) HttpWebRequest.Create(Host + "process/flip-h/0,0,300,100");
             req.Method = "PUT";
             req.ContentType = "application/octet-stream";
             req.KeepAlive = true;
@@ -86,27 +101,23 @@ namespace ImageTransformer.Tests
             AssertResponseHasFailCode(req, 400);
         }
 
-        [TestCase("bad/process/sepia/300,30,300,100")]
-        [TestCase("process/sepia/300,30,300")]
-        [TestCase("process/sepia/300,30,300,sym")]
-        [TestCase("process/sepia/300;30;300;100")]
-        [TestCase("bad/sepia/300,30,300,100")]
-        [TestCase("sepia/300,30,300,100")]
-        [TestCase("sepia/300,30,300,100/process")]
-        [TestCase("300,30,300,100/sepia/process")]
-        [TestCase("process/threshold(5032)/0,0,512,512")]
-        [TestCase("process/threshold(5032/0,0,512,512")]
-        [TestCase("process/threshold(50/0,0,512,512")]
-        [TestCase("process/threshold(sym)/0,0,512,512")]
-        [TestCase("process/(50)/0,0,512,512")]
-        [TestCase("process/threshold50)/0,0,512,512")]
+        [TestCase("bad/process/flip-h/300,30,300,100")]
+        [TestCase("process/flip-h/300,30,300")]
+        [TestCase("process/flip-h/300,30,300,sym")]
+        [TestCase("process/flip-h/300;30;300;100")]
+        [TestCase("bad/flip-h/300,30,300,100")]
+        [TestCase("flip-h/300,30,300,100")]
+        [TestCase("flip-h/300,30,300,100/process")]
+        [TestCase("300,30,300,100/flip-h/process")]
+        [TestCase("process/h/0,0,512,512")]
         public void RefuseWrongPathFormat(string path)
         {
-            var req = (HttpWebRequest)HttpWebRequest.Create("http://localhost:8080/" + path);
+            var req = (HttpWebRequest) HttpWebRequest.Create(Host + path);
             SetUpRequestCorrectly(req);
             AttachCorrectPicToRequest(req);
             AssertResponseHasFailCode(req, 400);
         }
+
         [OneTimeTearDown]
         public void TearDown()
         {

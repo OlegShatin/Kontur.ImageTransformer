@@ -35,6 +35,13 @@ namespace Kontur.ImageTransformer.Controllers
                 Response.Close();
             Closed = true;
         }
+        protected void SendInternalError()
+        {
+            Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            if (!Closed)
+                Response.Close();
+            Closed = true;
+        }
 
         protected void SendNotFound()
         {

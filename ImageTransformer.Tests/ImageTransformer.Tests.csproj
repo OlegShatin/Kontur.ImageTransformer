@@ -41,8 +41,12 @@
     <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ImageControllerShould.cs" />
-    <Compile Include="ImageHandlerShould.cs" />
+    <Compile Include="Services\ImageHandlerFiltersShould.cs" />
+    <Compile Include="Services\ImageHandlerTransformsShould.cs" />
+    <Compile Include="Services\TransformCoordsShould.cs" />
+    <Compile Include="ServerWithTransformShould.cs" />
+    <Compile Include="ServerWithFilteringShould.cs" />
+    <Compile Include="Services\ImageHandlerShould.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestWithImage.cs" />
   </ItemGroup>
@@ -60,6 +64,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="LennaShort.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="zebra.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

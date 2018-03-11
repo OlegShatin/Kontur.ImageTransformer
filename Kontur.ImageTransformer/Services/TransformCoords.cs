@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace Kontur.ImageTransformer.Services
 {
     //made static because transforms are very simple
@@ -16,9 +11,9 @@ namespace Kontur.ImageTransformer.Services
 
         public static class ToCw
         {
-            public static int GetX(int y, int picHeight)
+            public static int GetX(int y, int picWidth)
             {
-                return picHeight - 1 - y;
+                return picWidth - 1 - y;
             }
 
             public static int GetY(int x)
@@ -28,7 +23,7 @@ namespace Kontur.ImageTransformer.Services
 
             public static int GetWidth(int height)
             {
-                return height;
+                return -height;
             }
 
             public static int GetHeight(int width)
@@ -42,10 +37,10 @@ namespace Kontur.ImageTransformer.Services
             {
                 return y;
             }
-
-            public static int GetY(int x, int picWidth)
+            
+            public static int GetY(int x, int picHeigth)
             {
-                return picWidth - 1 - x;
+                return picHeigth - 1 - x;
             }
 
             public static int GetWidth(int height)
@@ -55,7 +50,7 @@ namespace Kontur.ImageTransformer.Services
 
             public static int GetHeight(int width)
             {
-                return width;
+                return -width;
             }
         }
         public static class ToFlipV

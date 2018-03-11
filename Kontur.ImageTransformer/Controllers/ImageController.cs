@@ -63,6 +63,14 @@ namespace Kontur.ImageTransformer.Controllers
                 catch (Exception e)
                 {
                     logger.Error(e);
+                    try
+                    {
+                        SendInternalError();
+                    }
+                    catch (Exception)
+                    {
+                        // ignored
+                    }
                 }
             }
         }
@@ -106,7 +114,7 @@ namespace Kontur.ImageTransformer.Controllers
         }
 
         /// <summary>
-        /// common impl for crop and change pic flow
+        /// common impl for crop-and-change-pic flow
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
@@ -175,8 +183,8 @@ namespace Kontur.ImageTransformer.Controllers
                 return performer.TryCropImage(source, out result,
                     TransformCoords.ToFlipH.GetX(x, source.Width),
                     TransformCoords.ToFlipH.GetY(y),
-                    TransformCoords.ToFlipH.GetWidth(height),
-                    TransformCoords.ToFlipH.GetHeight(width));
+                    TransformCoords.ToFlipH.GetWidth(width),
+                    TransformCoords.ToFlipH.GetHeight(height));
             }
         }
 
@@ -203,8 +211,8 @@ namespace Kontur.ImageTransformer.Controllers
                 return performer.TryCropImage(source, out result,
                     TransformCoords.ToFlipV.GetX(x),
                     TransformCoords.ToFlipV.GetY(y, source.Height),
-                    TransformCoords.ToFlipV.GetWidth(height),
-                    TransformCoords.ToFlipV.GetHeight(width));
+                    TransformCoords.ToFlipV.GetWidth(width),
+                    TransformCoords.ToFlipV.GetHeight(height));
             }
         }
 
@@ -229,7 +237,7 @@ namespace Kontur.ImageTransformer.Controllers
             public override bool TryCrop(Bitmap source, out Bitmap result, int x, int y, int width, int height)
             {
                 return performer.TryCropImage(source, out result,
-                    TransformCoords.ToCw.GetX(y, source.Height),
+                    TransformCoords.ToCw.GetX(y, source.Width),
                     TransformCoords.ToCw.GetY(x),
                     TransformCoords.ToCw.GetWidth(height),
                     TransformCoords.ToCw.GetHeight(width));
@@ -258,7 +266,7 @@ namespace Kontur.ImageTransformer.Controllers
             {
                 return performer.TryCropImage(source, out result,
                     TransformCoords.ToCww.GetX(y),
-                    TransformCoords.ToCww.GetY(x, source.Width),
+                    TransformCoords.ToCww.GetY(x, source.Height),
                     TransformCoords.ToCww.GetWidth(height),
                     TransformCoords.ToCww.GetHeight(width));
             }

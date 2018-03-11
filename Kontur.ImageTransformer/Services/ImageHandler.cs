@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Kontur.ImageTransformer.Services
 {
-    internal class ImageHandler
+    public class ImageHandler
     {
         public bool TryCropImage(Bitmap source, out Bitmap result, int x, int y, int width, int height)
         {
