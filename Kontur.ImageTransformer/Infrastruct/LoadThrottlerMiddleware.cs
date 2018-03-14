@@ -29,17 +29,7 @@ namespace Kontur.ImageTransformer.Infrastruct
 
         public void Run(HttpListenerContext context, Action<HttpListenerContext> next)
         {
-            /*Task.Factory.StartNew(o =>
-            {
-                var contextEntry = (QueueWaitingEntry<HttpListenerContext>)o;
-                
-                    using (contextEntry.Elem.Response)
-                    {
-                        contextEntry.Elem.Response.StatusCode = 429;
-                        contextEntry.Elem.Response.Close();
-                    }
-                
-            }, new QueueWaitingEntry<HttpListenerContext>(context, next));*/
+            
             Interlocked.Increment(ref queueLength);
             
             Task.Factory.StartNew(o =>
