@@ -5,8 +5,9 @@ using Kontur.ImageTransformer;
 
 namespace ImageTransformer.Tests
 {
+    [Ignore("Test for old version")]
     [TestFixture]
-    public class ImageControllerShould : TestWithImage
+    public class ServerWithFilteringShould : TestWithImage
     {
         private AsyncHttpServer server;
 

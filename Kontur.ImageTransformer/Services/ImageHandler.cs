@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Kontur.ImageTransformer.Services
 {
-    internal class ImageHandler
+    public class ImageHandler
     {
         public bool TryCropImage(Bitmap source, out Bitmap result, int x, int y, int width, int height)
         {
@@ -63,21 +63,44 @@ namespace Kontur.ImageTransformer.Services
             return true;
         }
 
+        public void RotateCw(Bitmap bitmap)
+        {
+            bitmap.RotateFlip(RotateFlipType.Rotate90FlipNone);
+        }
+
+        public void RotateCww(Bitmap bitmap)
+        {
+            bitmap.RotateFlip(RotateFlipType.Rotate270FlipNone);
+        }
+
+        public void FlipVertical(Bitmap bitmap)
+        {
+            bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
+        }
+
+        public void FlipHorizontal(Bitmap bitmap)
+        {
+            bitmap.RotateFlip(RotateFlipType.RotateNoneFlipX);
+        }
+
+        #region Obsolete - Filters
+
         public void ApplySepia(Bitmap processedBitmap)
         {
             ProcessPixelsByAction(processedBitmap, new SepiaPixelAction());
         }
+
         public void ApplyGrayscale(Bitmap processedBitmap)
         {
             ProcessPixelsByAction(processedBitmap, new GrayscalePixelAction());
         }
+
         public void ApplyThreshold(Bitmap processedBitmap, int level)
         {
             if (level < 0 || level > 100)
                 throw new ArgumentOutOfRangeException($"Level should be between 0 and 100");
             ProcessPixelsByAction(processedBitmap, new ThresholdPixelAction(level));
         }
-
 
 
         private unsafe void ProcessPixelsByAction(Bitmap processedBitmap,
@@ -90,7 +113,7 @@ namespace Kontur.ImageTransformer.Services
             int bytesPerPixel = Bitmap.GetPixelFormatSize(processedBitmap.PixelFormat) / 8;
             int heightInPixels = bitmapData.Height;
             int widthInBytes = bitmapData.Width * bytesPerPixel;
-            byte* ptrFirstPixel = (byte*) bitmapData.Scan0;
+            byte* ptrFirstPixel = (byte*)bitmapData.Scan0;
 
             /*Parallel.For(0, heightInPixels, y =>
             {*/
@@ -108,12 +131,11 @@ namespace Kontur.ImageTransformer.Services
                     currentLine[x + 2] = (byte)red;
                 }
             }
-                
+
             //});
             processedBitmap.UnlockBits(bitmapData);
         }
 
-        
 
         #region PixelActions
 
@@ -132,6 +154,7 @@ namespace Kontur.ImageTransformer.Services
                 b = intensity;
             }
         }
+
         private class SepiaPixelAction : PixelAction
         {
             public override void Invoke(ref int r, ref int g, ref int b)
@@ -144,6 +167,7 @@ namespace Kontur.ImageTransformer.Services
                 b = newB > 255 ? 255 : newB;
             }
         }
+
         private class ThresholdPixelAction : PixelAction
         {
             private readonly int level;
@@ -152,6 +176,7 @@ namespace Kontur.ImageTransformer.Services
             {
                 this.level = level;
             }
+
             public override void Invoke(ref int r, ref int g, ref int b)
             {
                 int intensity = (r + g + b) / 3;
@@ -167,11 +192,14 @@ namespace Kontur.ImageTransformer.Services
                     g = 0;
                     b = 0;
                 }
-
             }
         }
 
         #endregion
 
+        #endregion
+
+
+        
     }
 }

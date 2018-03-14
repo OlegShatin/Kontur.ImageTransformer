@@ -4,7 +4,7 @@ namespace ImageTransformer.Tests
 {
     public class TestWithImage
     {
-        public static readonly string ValidPicPath = System.AppDomain.CurrentDomain.BaseDirectory+"LennaShort.png";
+        public static readonly string ValidPicPath = System.AppDomain.CurrentDomain.BaseDirectory+"zebra.png";
 
         public static readonly string LargePicPath = System.AppDomain.CurrentDomain.BaseDirectory + "Lenna.png";
 

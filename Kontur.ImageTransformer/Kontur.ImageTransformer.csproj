@@ -54,6 +54,9 @@
     <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
       <HintPath>..\packages\NLog.4.4.12\lib\net45\NLog.dll</HintPath>
     </Reference>
+    <Reference Include="PipelineNet, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\PipelineNet.0.0.1\lib\netstandard1.1\PipelineNet.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -68,6 +71,9 @@
     <Compile Include="Controllers\Controller.cs" />
     <Compile Include="EntryPoint.cs" />
     <Compile Include="Controllers\ImageController.cs" />
+    <Compile Include="Infrastruct\LoadThrottlerMiddleware.cs" />
+    <Compile Include="Infrastruct\SingleImageControllerMiddleware.cs" />
+    <Compile Include="Services\TransformCoords.cs" />
     <Compile Include="Services\ImageHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="AsyncHttpServer.cs" />

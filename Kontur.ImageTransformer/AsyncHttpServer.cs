@@ -7,8 +7,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Kontur.ImageTransformer.Controllers;
+using Kontur.ImageTransformer.Infrastruct;
 using NLog;
 using NLog.Targets;
+using PipelineNet;
+using PipelineNet.Middleware;
+using PipelineNet.MiddlewareResolver;
+using PipelineNet.Pipelines;
 
 namespace Kontur.ImageTransformer
 {
@@ -17,20 +22,28 @@ namespace Kontur.ImageTransformer
         private static Logger logger = LogManager.GetCurrentClassLogger();
         private readonly HttpListener listener;
         private Thread listenerThread;
-        private Thread queueHandleThread;
         private bool disposed;
         private volatile bool isRunning;
-        private readonly TimeSpan requestWaitingLimit = TimeSpan.FromMilliseconds(500);
-        private BlockingCollection<ImageController> queue;
-        private static readonly int maxParallelTasks = Environment.ProcessorCount;
+        private LoadThrottlerMiddleware loadThrottler;
+        private IPipeline<HttpListenerContext> pipeline;
+
         public AsyncHttpServer()
         {
             listener = new HttpListener();
-            
+            loadThrottler = new LoadThrottlerMiddleware();
+            var mwResolver = new SingletoneMiddlewaresResolver();
+
+            mwResolver.AddInstance(loadThrottler);
+            mwResolver.AddInstance(new SingleImageControllerMiddleware());
+
+            pipeline = new Pipeline<HttpListenerContext>(mwResolver)
+                .Add<LoadThrottlerMiddleware>()
+                .Add<SingleImageControllerMiddleware>();
         }
 
         public void Start(string prefix)
         {
+            
             lock (listener)
             {
                 if (!isRunning)
@@ -39,12 +52,7 @@ namespace Kontur.ImageTransformer
                     listener.Prefixes.Add(prefix);
                     listener.Start();
 
-                    queue = new BlockingCollection<ImageController>(new ConcurrentQueue<ImageController>());
-                    queueHandleThread = new Thread(HandleQueueElems)
-                    {
-                        IsBackground = true
-                    };
-                    queueHandleThread.Start();
+                    
 
                     listenerThread = new Thread(Listen)
                     {
@@ -70,8 +78,7 @@ namespace Kontur.ImageTransformer
                 listenerThread.Abort();
                 listenerThread.Join();
 
-                queueHandleThread.Abort();
-                queueHandleThread.Join();
+                
 
                 isRunning = false;
 
@@ -87,6 +94,7 @@ namespace Kontur.ImageTransformer
             disposed = true;
 
             Stop();
+            loadThrottler.Dispose();
 
             listener.Close();
         }
@@ -102,8 +110,7 @@ namespace Kontur.ImageTransformer
                     if (listener.IsListening)
                     {
                         var listenerContext = listener.GetContext();
-                        var controller = new ImageController(listenerContext);
-                        queue.Add(controller);
+                        pipeline.Execute(listenerContext);
 
                     }
                     else Thread.Sleep(0);
@@ -119,34 +126,23 @@ namespace Kontur.ImageTransformer
                 }
             }
         }
-        Semaphore semaphore = new Semaphore(maxParallelTasks + 1, maxParallelTasks + 1);
         
-        private void HandleQueueElems()
+        
+        
+        
+    }
+    public class SingletoneMiddlewaresResolver : IMiddlewareResolver
+    {
+        private Dictionary<Type, object> singletones = new Dictionary<Type, object>();
+        public object Resolve(Type type)
         {
-            
-            foreach (var controller in queue.GetConsumingEnumerable())
-            {
-                
-                semaphore.WaitOne();
-                if (DateTime.Now - controller.Start < requestWaitingLimit)
-                    Task.Factory.StartNew((ctr) =>
-                    {
-                        //semaphore.WaitOne();
-
-                        ((Controller)ctr).HandleRequest();
-                        semaphore.Release();
-                    }, controller);
-                else
-                    Task.Factory.StartNew((ctr) =>
-                    {
-                        //semaphore.WaitOne();
-                        ((Controller)ctr).RefuseRequestSafely();
-                        semaphore.Release();
-                    }, controller);
-                //semaphore.Release();
-            }
+            return singletones[type];
         }
-        
+
+        public void AddInstance<TParam>(IMiddleware<TParam> middleware)
+        {
+            singletones.Add(middleware.GetType(), middleware);
+        }
     }
     
 }
